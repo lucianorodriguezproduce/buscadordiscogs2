@@ -3,6 +3,7 @@ import { Layout } from "@/components/Layout/Layout";
 import Login from "@/pages/Login";
 import Home from "@/pages/Home";
 import AlbumDetail from "@/pages/AlbumDetail";
+import Collection from "@/pages/Collection";
 
 function App() {
   return (
@@ -10,6 +11,7 @@ function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/collection" element={<Collection />} />
           <Route path="/album/:id" element={<AlbumDetail />} />
           <Route path="/login" element={<Login />} />
         </Route>

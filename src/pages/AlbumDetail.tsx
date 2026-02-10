@@ -1,23 +1,66 @@
+import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ALBUM_DATA, SIMILAR_ALBUMS, TRACKLIST } from "@/data/mockData";
-import { Heart, Library, PlayCircle, Store } from "lucide-react";
+import { Loader2, Heart, Library, PlayCircle, Store, ChevronRight } from "lucide-react";
+import { discogsService } from "@/lib/discogs";
 
 export default function AlbumDetail() {
-    const album = ALBUM_DATA;
+    const { id } = useParams<{ id: string }>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [album, setAlbum] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function fetchDetails() {
+            if (!id) return;
+            setLoading(true);
+            setError(null);
+            try {
+                const data = await discogsService.getReleaseDetails(id);
+                setAlbum(data);
+            } catch (err) {
+                console.error("Failed to fetch album details:", err);
+                setError("Could not load album details. Please try again later.");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchDetails();
+    }, [id]);
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+                <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                <p className="text-gray-500 font-medium">Fetching release details...</p>
+            </div>
+        );
+    }
+
+    if (error || !album) {
+        return (
+            <div className="text-center py-20">
+                <p className="text-red-500 mb-4">{error || "Release not found."}</p>
+                <Link to="/">
+                    <Button variant="outline">Back to Search</Button>
+                </Link>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen">
             <nav className="flex mb-8 text-sm text-gray-500">
                 <ol className="flex items-center space-x-2">
-                    <li><a href="#" className="hover:text-primary transition-colors">Discover</a></li>
-                    <li>/</li>
-                    <li><a href="#" className="hover:text-primary transition-colors">Electronic</a></li>
-                    <li>/</li>
-                    <li><a href="#" className="hover:text-primary transition-colors">{album.artist}</a></li>
-                    <li>/</li>
-                    <li className="text-white">{album.title}</li>
+                    <li><Link to="/" className="hover:text-primary transition-colors">Discover</Link></li>
+                    <li><ChevronRight className="h-4 w-4" /></li>
+                    <li>{album.artists?.[0]?.name || "Artist"}</li>
+                    <li><ChevronRight className="h-4 w-4" /></li>
+                    <li className="text-white truncate max-w-[200px]">{album.title}</li>
                 </ol>
             </nav>
 
@@ -26,9 +69,12 @@ export default function AlbumDetail() {
                 <div className="lg:col-span-5 space-y-6">
                     <div className="relative group aspect-square rounded-2xl overflow-hidden border border-gray-800 bg-surface-dark shadow-2xl">
                         <img
-                            src={album.cover}
+                            src={album.images?.[0]?.uri || album.thumb}
                             alt={album.title}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = "https://placehold.co/600x600/121212/FFFFFF?text=No+Cover";
+                            }}
                         />
                     </div>
 
@@ -52,21 +98,23 @@ export default function AlbumDetail() {
                         </div>
                         <div className="space-y-4 font-mono">
                             <div className="flex justify-between items-end border-b border-gray-800 pb-3">
-                                <span className="text-gray-400 text-sm">Lowest</span>
-                                <span className="text-2xl font-bold text-white">${album.market.lowest.toFixed(2)}</span>
+                                <span className="text-gray-400 text-sm">Lowest Price</span>
+                                <span className="text-2xl font-bold text-white">
+                                    {album.lowest_price ? `$${album.lowest_price.toFixed(2)}` : "N/A"}
+                                </span>
                             </div>
                             <div className="flex justify-between items-end border-b border-gray-800 pb-3">
-                                <span className="text-gray-400 text-sm">Median</span>
-                                <span className="text-2xl font-bold text-primary">${album.market.median.toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between items-end pb-1">
-                                <span className="text-gray-400 text-sm">Highest</span>
-                                <span className="text-xl text-gray-300">${album.market.highest.toFixed(2)}</span>
+                                <span className="text-gray-400 text-sm">Community Rating</span>
+                                <span className="text-2xl font-bold text-primary">
+                                    {album.community?.rating?.average?.toFixed(1) || "5.0"}
+                                </span>
                             </div>
                         </div>
-                        <Button variant="outline" className="w-full mt-5 border-gray-700 text-gray-300 hover:text-white hover:border-gray-500">
-                            View {album.market.forSale} For Sale
-                        </Button>
+                        <a href={album.uri} target="_blank" rel="noopener noreferrer" className="block w-full">
+                            <Button variant="outline" className="w-full mt-5 border-gray-700 text-gray-300 hover:text-white hover:border-gray-500">
+                                View on Discogs
+                            </Button>
+                        </a>
                     </div>
                 </div>
 
@@ -74,43 +122,53 @@ export default function AlbumDetail() {
                 <div className="lg:col-span-7 space-y-8">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
-                            <Badge variant="secondary" className="bg-secondary/10 text-secondary border-secondary/20 rounded-full">{album.format}</Badge>
-                            <Badge variant="outline" className="bg-gray-800 text-gray-400 border-gray-700 rounded-full">{album.year}</Badge>
+                            <Badge variant="secondary" className="bg-secondary/10 text-secondary border-secondary/20 rounded-full">
+                                {album.formats?.[0]?.name || "Album"}
+                            </Badge>
+                            <Badge variant="outline" className="bg-gray-800 text-gray-400 border-gray-700 rounded-full">
+                                {album.released_formatted || album.year}
+                            </Badge>
                         </div>
                         <h1 className="text-4xl md:text-6xl font-display font-bold text-white mb-2 leading-tight">{album.title}</h1>
-                        <h2 className="text-2xl text-primary font-medium mb-6">{album.artist}</h2>
+                        <h2 className="text-2xl text-primary font-medium mb-6">{album.artists?.[0]?.name}</h2>
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-surface-dark rounded-2xl border border-gray-800">
-                            {[
-                                { label: "Label", value: album.label },
-                                { label: "Catalog #", value: album.catalogNumber },
-                                { label: "Format", value: album.formatDetails },
-                                { label: "Country", value: album.country },
-                            ].map((item) => (
-                                <div key={item.label}>
-                                    <span className="block text-xs text-gray-500 uppercase mb-1">{item.label}</span>
-                                    <span className="block text-white font-medium">{item.value}</span>
-                                </div>
-                            ))}
+                            <div>
+                                <span className="block text-xs text-gray-500 uppercase mb-1">Label</span>
+                                <span className="block text-white font-medium truncate">{album.labels?.[0]?.name}</span>
+                            </div>
+                            <div>
+                                <span className="block text-xs text-gray-500 uppercase mb-1">Catalog #</span>
+                                <span className="block text-white font-medium truncate">{album.labels?.[0]?.catno}</span>
+                            </div>
+                            <div>
+                                <span className="block text-xs text-gray-500 uppercase mb-1">Genre</span>
+                                <span className="block text-white font-medium truncate">{album.genres?.[0]}</span>
+                            </div>
+                            <div>
+                                <span className="block text-xs text-gray-500 uppercase mb-1">Country</span>
+                                <span className="block text-white font-medium truncate">{album.country}</span>
+                            </div>
                         </div>
 
-                        <p className="text-gray-400 leading-relaxed mt-6">
-                            {album.description}
-                        </p>
+                        {album.notes && (
+                            <p className="text-gray-400 leading-relaxed mt-6">
+                                {album.notes}
+                            </p>
+                        )}
                     </div>
 
                     <div>
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-2xl font-bold text-white">Tracklist</h3>
-                            <span className="text-sm text-gray-500">Total Time: 74:24</span>
+                            <span className="text-sm text-gray-500">{album.tracklist?.length || 0} Tracks</span>
                         </div>
                         <div className="space-y-1">
-                            {TRACKLIST.map((track) => (
-                                <div key={track.position} className="group flex items-center p-3 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-gray-800 cursor-pointer">
-                                    <span className="w-8 text-gray-600 font-mono text-sm group-hover:text-primary">{track.position}</span>
+                            {album.tracklist?.map((track: any, index: number) => (
+                                <div key={index} className="group flex items-center p-3 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-gray-800 cursor-pointer">
+                                    <span className="w-8 text-gray-600 font-mono text-sm group-hover:text-primary">{track.position || index + 1}</span>
                                     <div className="flex-grow">
                                         <div className="text-white font-medium">{track.title}</div>
-                                        {track.artist && <div className="text-xs text-gray-500">feat. {track.artist}</div>}
                                     </div>
                                     <span className="text-gray-500 font-mono text-sm">{track.duration}</span>
                                     <div className="w-12 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
@@ -118,23 +176,27 @@ export default function AlbumDetail() {
                                     </div>
                                 </div>
                             ))}
+                            {(!album.tracklist || album.tracklist.length === 0) && (
+                                <p className="text-gray-500">No tracklist available.</p>
+                            )}
                         </div>
                     </div>
 
                     <Separator className="bg-gray-800 my-8" />
 
-                    <div>
-                        <h3 className="text-2xl font-bold text-white mb-6">Collectors also bought</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                            {SIMILAR_ALBUMS.slice(0, 4).map((album) => (
-                                <div key={album.title} className="group cursor-pointer">
-                                    <div className="aspect-square rounded-xl overflow-hidden mb-3 relative">
-                                        <img src={album.cover} alt={album.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                    </div>
-                                    <h4 className="text-white font-bold text-sm truncate">{album.title}</h4>
-                                    <p className="text-gray-500 text-xs">{album.artist}</p>
-                                </div>
-                            ))}
+                    <div className="flex flex-col md:flex-row gap-8 text-sm text-gray-500">
+                        <div className="flex-1">
+                            <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-xs">Styles</h4>
+                            <div className="flex flex-wrap gap-2">
+                                {album.styles?.map((style: string) => (
+                                    <Badge key={style} variant="outline" className="text-gray-400 border-gray-800">{style}</Badge>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex-1">
+                            <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-xs">Community</h4>
+                            <p><strong className="text-gray-400">Have:</strong> {album.community?.have || 0}</p>
+                            <p><strong className="text-gray-400">Want:</strong> {album.community?.want || 0}</p>
                         </div>
                     </div>
 

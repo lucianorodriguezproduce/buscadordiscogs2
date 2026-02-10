@@ -19,7 +19,7 @@ export function ProtectedRoute({ adminOnly = false }: ProtectedRouteProps) {
         );
     }
 
-    if (!user) {
+    if (!user && !isAdmin) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Grid2X2, List } from "lucide-react";
+import { Grid2X2, List } from "lucide-react";
 import { Link } from "react-router-dom";
 import { discogsService } from "@/lib/discogs";
 

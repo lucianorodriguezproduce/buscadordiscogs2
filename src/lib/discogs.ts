@@ -3,6 +3,7 @@ const DISCOGS_BASE_URL = "/api/proxy";
 async function fetchFromDiscogs(endpoint: string, params: Record<string, string> = {}) {
     const url = new URL(window.location.origin + DISCOGS_BASE_URL);
     url.searchParams.append("path", endpoint);
+
     for (const [key, value] of Object.entries(params)) {
         url.searchParams.append(key, value);
     }
@@ -19,19 +20,28 @@ async function fetchFromDiscogs(endpoint: string, params: Record<string, string>
 export interface DiscogsSearchResult {
     id: number;
     title: string;
-    thumb: string;
     cover_image: string;
+    thumb: string;
     year?: string;
+    label?: string[];
+    genre?: string[];
+    style?: string[];
+    resource_url: string;
+    type: string;
+    uri: string;
 }
 
 export const discogsService = {
-    async searchReleases(query: string): Promise<DiscogsSearchResult[]> {
+    async searchReleases(query: string, genre?: string): Promise<DiscogsSearchResult[]> {
         if (!query) return [];
-        const data = await fetchFromDiscogs("/database/search", {
+        const params: Record<string, string> = {
             q: query,
             type: "release",
             per_page: "20",
-        });
+        };
+        if (genre) params.genre = genre;
+
+        const data = await fetchFromDiscogs("/database/search", params);
         return data.results;
     },
 
@@ -43,15 +53,14 @@ export const discogsService = {
         return fetchFromDiscogs(`/masters/${id}`);
     },
 
-    async getTrending() {
-        // Discogs doesn't have a direct "trending" endpoint for free tokens, 
-        // so we search for popular recent electronic releases as a fallback
-        const data = await fetchFromDiscogs("/database/search", {
-            genre: "Electronic",
+    async getTrending(genre?: string): Promise<DiscogsSearchResult[]> {
+        const params: Record<string, string> = {
+            genre: genre || "Electronic",
             year: "2024",
             type: "release",
-            per_page: "10",
-        });
+            per_page: "18",
+        };
+        const data = await fetchFromDiscogs("/database/search", params);
         return data.results;
-    }
+    },
 };

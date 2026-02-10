@@ -15,7 +15,7 @@ export function Navbar() {
     ];
 
     return (
-        <nav className="fixed w-full z-50 top-0 left-0 border-b border-white/10 bg-black/80 backdrop-blur-md">
+        <nav className="fixed w-full z-50 top-0 left-0 border-b border-white/[0.08] bg-black/60 backdrop-blur-2xl backdrop-saturate-[1.8] transition-all duration-500">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-20">
                     <Link to="/" className="flex items-center gap-3 group">

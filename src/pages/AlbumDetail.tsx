@@ -1,207 +1,243 @@
-import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Heart, Library, PlayCircle, Store, ChevronRight } from "lucide-react";
+import { Heart, Library, PlayCircle, Store, ChevronRight, Share2, Globe, Music, Award } from "lucide-react";
 import { discogsService } from "@/lib/discogs";
+import { motion } from "framer-motion";
+import { AlbumDetailSkeleton } from "@/components/ui/Skeleton";
+import { useQuery } from "@tanstack/react-query";
 
 export default function AlbumDetail() {
     const { id } = useParams<{ id: string }>();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [album, setAlbum] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        async function fetchDetails() {
-            if (!id) return;
-            setLoading(true);
-            setError(null);
-            try {
-                const data = await discogsService.getReleaseDetails(id);
-                setAlbum(data);
-            } catch (err) {
-                console.error("Failed to fetch album details:", err);
-                setError("Could not load album details. Please try again later.");
-            } finally {
-                setLoading(false);
-            }
-        }
+    const { data: album, isLoading, error } = useQuery({
+        queryKey: ["release", id],
+        queryFn: () => id ? discogsService.getReleaseDetails(id) : Promise.reject("No ID"),
+        enabled: !!id,
+    });
 
-        fetchDetails();
-    }, [id]);
-
-    if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-                <Loader2 className="h-12 w-12 text-primary animate-spin" />
-                <p className="text-gray-500 font-medium">Fetching release details...</p>
-            </div>
-        );
+    if (isLoading) {
+        return <AlbumDetailSkeleton />;
     }
 
     if (error || !album) {
         return (
-            <div className="text-center py-20">
-                <p className="text-red-500 mb-4">{error || "Release not found."}</p>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-40 bg-white/[0.02] rounded-[3rem] border border-dashed border-white/10"
+            >
+                <p className="text-red-400 font-bold mb-8 text-xl tracking-tight">Sonic connection lost.</p>
                 <Link to="/">
-                    <Button variant="outline">Back to Search</Button>
+                    <Button variant="outline" className="rounded-full px-10 h-14 font-bold border-white/20 hover:bg-white hover:text-black">Back to Discovery</Button>
                 </Link>
-            </div>
+            </motion.div>
         );
     }
 
     return (
-        <div className="min-h-screen">
-            <nav className="flex mb-8 text-sm text-gray-500">
-                <ol className="flex items-center space-x-2">
-                    <li><Link to="/" className="hover:text-primary transition-colors">Discover</Link></li>
-                    <li><ChevronRight className="h-4 w-4" /></li>
-                    <li>{album.artists?.[0]?.name || "Artist"}</li>
-                    <li><ChevronRight className="h-4 w-4" /></li>
-                    <li className="text-white truncate max-w-[200px]">{album.title}</li>
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="min-h-screen relative"
+        >
+            <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-primary/5 blur-[150px] -z-10 animate-pulse" />
+
+            <nav className="flex mb-16 text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">
+                <ol className="flex items-center space-x-4">
+                    <li><Link to="/" className="hover:text-primary transition-colors">SonicVault</Link></li>
+                    <li><ChevronRight className="h-3 w-3 text-gray-800" /></li>
+                    <li className="text-gray-400">{album.artists?.[0]?.name || "Artist"}</li>
+                    <li><ChevronRight className="h-3 w-3 text-gray-800" /></li>
+                    <li className="text-primary truncate max-w-[200px]">{album.title}</li>
                 </ol>
             </nav>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-20">
                 {/* Left Column: Cover & Actions */}
-                <div className="lg:col-span-5 space-y-6">
-                    <div className="relative group aspect-square rounded-2xl overflow-hidden border border-gray-800 bg-surface-dark shadow-2xl">
+                <div className="lg:col-span-5 space-y-12">
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0, rotateY: 20 }}
+                        animate={{ scale: 1, opacity: 1, rotateY: 0 }}
+                        transition={{ type: "spring", damping: 12, stiffness: 100 }}
+                        className="relative group aspect-square rounded-[3rem] overflow-hidden border border-white/10 bg-black shadow-[0_80px_150px_-30px_rgba(0,0,0,0.8)] perspective-1000"
+                    >
                         <img
                             src={album.images?.[0]?.uri || album.thumb}
                             alt={album.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
                             onError={(e) => {
-                                (e.target as HTMLImageElement).src = "https://placehold.co/600x600/121212/FFFFFF?text=No+Cover";
+                                (e.target as HTMLImageElement).src = "https://placehold.co/800x800/121212/FFFFFF?text=No+Cover";
                             }}
                         />
-                    </div>
+                        <div className="absolute inset-0 bg-gradient-to-tr from-black/60 via-transparent to-primary/5 pointer-events-none" />
+                        <div className="absolute inset-0 ring-1 ring-inset ring-white/20 rounded-[3rem] pointer-events-none" />
+                    </motion.div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <Button className="h-14 text-base font-bold bg-primary text-black hover:bg-[#ccee00] rounded-xl">
-                            <Library className="mr-2 h-5 w-5" />
-                            Add to Collection
-                        </Button>
-                        <Button variant="outline" className="h-14 text-base font-bold text-secondary border-secondary hover:bg-secondary hover:text-black rounded-xl bg-transparent">
-                            <Heart className="mr-2 h-5 w-5" />
-                            Wantlist
-                        </Button>
-                    </div>
-
-                    <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-2xl">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                <Store className="h-5 w-5 text-secondary" /> Marketplace
-                            </h3>
-                            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 rounded font-mono">LIVE</Badge>
+                    <div className="flex flex-col gap-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            <Button className="h-20 text-lg font-black bg-primary text-black hover:bg-white transition-all transform hover:-translate-y-2 rounded-2xl shadow-xl shadow-primary/10 select-none overflow-hidden relative group">
+                                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                                <Library className="mr-3 h-6 w-6 relative z-10" />
+                                <span className="relative z-10">Collect</span>
+                            </Button>
+                            <Button variant="outline" className="h-20 text-lg font-black text-secondary border-secondary/20 hover:bg-secondary/10 hover:border-secondary transition-all transform hover:-translate-y-2 rounded-2xl bg-black/40 shadow-xl select-none group">
+                                <Heart className="mr-3 h-6 w-6 group-hover:fill-secondary" />
+                                Wantlist
+                            </Button>
                         </div>
-                        <div className="space-y-4 font-mono">
-                            <div className="flex justify-between items-end border-b border-gray-800 pb-3">
-                                <span className="text-gray-400 text-sm">Lowest Price</span>
-                                <span className="text-2xl font-bold text-white">
-                                    {album.lowest_price ? `$${album.lowest_price.toFixed(2)}` : "N/A"}
+                        <Button variant="ghost" className="h-14 text-gray-500 hover:text-white hover:bg-white/5 rounded-2xl font-black uppercase tracking-[0.15em] text-[11px] border border-white/5 transition-all">
+                            <Share2 className="mr-3 h-5 w-5" /> Transmission Link
+                        </Button>
+                    </div>
+
+                    <motion.div
+                        initial={{ y: 30, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.4 }}
+                        className="bg-gradient-to-br from-white/[0.04] to-transparent backdrop-blur-3xl border border-white/[0.06] p-10 rounded-[3rem] relative overflow-hidden group shadow-2xl"
+                    >
+                        <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 blur-[80px] rounded-full group-hover:bg-primary/20 transition-colors duration-1000" />
+                        <div className="flex items-center justify-between mb-10">
+                            <h3 className="text-2xl font-display font-bold text-white flex items-center gap-4">
+                                <Store className="h-7 w-7 text-primary" /> Market Logic
+                            </h3>
+                            <Badge variant="secondary" className="bg-primary/5 text-primary border-primary/20 rounded-lg font-mono text-[10px] font-black px-3 py-1.5 tracking-tighter">API_STABLE_V1</Badge>
+                        </div>
+                        <div className="space-y-8 font-mono">
+                            <div className="flex justify-between items-end border-b border-white/[0.04] pb-6">
+                                <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Floor Price</span>
+                                <span className="text-3xl font-black text-white tracking-widest">
+                                    {album.lowest_price ? `$${album.lowest_price.toFixed(2)}` : "—"}
                                 </span>
                             </div>
-                            <div className="flex justify-between items-end border-b border-gray-800 pb-3">
-                                <span className="text-gray-400 text-sm">Community Rating</span>
-                                <span className="text-2xl font-bold text-primary">
-                                    {album.community?.rating?.average?.toFixed(1) || "5.0"}
-                                </span>
+                            <div className="flex justify-between items-end border-b border-white/[0.04] pb-6">
+                                <span className="text-gray-500 text-xs font-bold uppercase tracking-widest">Resonance</span>
+                                <div className="flex flex-col items-end">
+                                    <span className="text-3xl font-black text-primary tracking-widest">
+                                        {album.community?.rating?.average?.toFixed(1) || "5.0"}
+                                    </span>
+                                    <span className="text-[9px] text-gray-700 uppercase font-black mt-1">{album.community?.rating?.count || 0} Community Votes</span>
+                                </div>
                             </div>
                         </div>
                         <a href={album.uri} target="_blank" rel="noopener noreferrer" className="block w-full">
-                            <Button variant="outline" className="w-full mt-5 border-gray-700 text-gray-300 hover:text-white hover:border-gray-500">
-                                View on Discogs
+                            <Button className="w-full mt-10 bg-black/40 border border-white/10 text-white hover:bg-white hover:text-black transition-all rounded-[1.25rem] py-8 font-black uppercase tracking-widest text-[11px] h-16">
+                                Analyze on Discogs
                             </Button>
                         </a>
-                    </div>
+                    </motion.div>
                 </div>
 
                 {/* Right Column: Details & Tracklist */}
-                <div className="lg:col-span-7 space-y-8">
-                    <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <Badge variant="secondary" className="bg-secondary/10 text-secondary border-secondary/20 rounded-full">
-                                {album.formats?.[0]?.name || "Album"}
-                            </Badge>
-                            <Badge variant="outline" className="bg-gray-800 text-gray-400 border-gray-700 rounded-full">
-                                {album.released_formatted || album.year}
-                            </Badge>
+                <div className="lg:col-span-7 space-y-16">
+                    <motion.div
+                        initial={{ x: 30, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: 0.2 }}
+                    >
+                        <div className="flex flex-wrap items-center gap-4 mb-8">
+                            <div className="flex items-center gap-2 bg-secondary/10 px-5 py-2 rounded-full border border-secondary/20">
+                                <Music className="h-3.5 w-3.5 text-secondary" />
+                                <span className="text-[10px] font-black text-secondary uppercase tracking-[0.1em]">{album.formats?.[0]?.name || "LP"}</span>
+                            </div>
+                            <div className="flex items-center gap-2 bg-white/5 px-5 py-2 rounded-full border border-white/10">
+                                <Globe className="h-3.5 w-3.5 text-gray-500" />
+                                <span className="text-[10px] font-black text-gray-400 uppercase">{album.released_formatted || album.year}</span>
+                            </div>
+                            {album.community?.have > 1000 && (
+                                <div className="flex items-center gap-2 bg-primary/10 px-5 py-2 rounded-full border border-primary/20">
+                                    <Award className="h-3.5 w-3.5 text-primary" />
+                                    <span className="text-[10px] font-black text-primary uppercase">Elite Favorite</span>
+                                </div>
+                            )}
                         </div>
-                        <h1 className="text-4xl md:text-6xl font-display font-bold text-white mb-2 leading-tight">{album.title}</h1>
-                        <h2 className="text-2xl text-primary font-medium mb-6">{album.artists?.[0]?.name}</h2>
+                        <h1 className="text-6xl md:text-9xl font-display font-bold text-white mb-6 leading-[0.8] tracking-tightest drop-shadow-2xl">
+                            {album.title}
+                        </h1>
+                        <h2 className="text-3xl md:text-5xl text-gray-500 font-medium mb-12 tracking-tightest">{album.artists?.[0]?.name}</h2>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-surface-dark rounded-2xl border border-gray-800">
-                            <div>
-                                <span className="block text-xs text-gray-500 uppercase mb-1">Label</span>
-                                <span className="block text-white font-medium truncate">{album.labels?.[0]?.name}</span>
-                            </div>
-                            <div>
-                                <span className="block text-xs text-gray-500 uppercase mb-1">Catalog #</span>
-                                <span className="block text-white font-medium truncate">{album.labels?.[0]?.catno}</span>
-                            </div>
-                            <div>
-                                <span className="block text-xs text-gray-500 uppercase mb-1">Genre</span>
-                                <span className="block text-white font-medium truncate">{album.genres?.[0]}</span>
-                            </div>
-                            <div>
-                                <span className="block text-xs text-gray-500 uppercase mb-1">Country</span>
-                                <span className="block text-white font-medium truncate">{album.country}</span>
-                            </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 p-10 bg-white/[0.02] rounded-[3rem] border border-white/[0.04] backdrop-blur-2xl">
+                            {[
+                                { label: "Label", value: album.labels?.[0]?.name },
+                                { label: "Cat #", value: album.labels?.[0]?.catno },
+                                { label: "Genre", value: album.genres?.[0] },
+                                { label: "Country", value: album.country },
+                            ].map((item) => (
+                                <div key={item.label}>
+                                    <span className="block text-[10px] text-gray-600 uppercase font-black tracking-[0.2em] mb-3">{item.label}</span>
+                                    <span className="block text-white font-bold truncate text-sm">{item.value || "—"}</span>
+                                </div>
+                            ))}
                         </div>
 
                         {album.notes && (
-                            <p className="text-gray-400 leading-relaxed mt-6">
-                                {album.notes}
-                            </p>
+                            <div className="mt-16 relative">
+                                <div className="absolute -left-8 top-2 bottom-2 w-[2px] bg-gradient-to-b from-primary via-primary/50 to-transparent rounded-full" />
+                                <p className="text-gray-400 leading-relaxed italic text-xl font-medium tracking-tight">
+                                    "{album.notes.length > 600 ? album.notes.substring(0, 600) + "..." : album.notes}"
+                                </p>
+                            </div>
                         )}
-                    </div>
+                    </motion.div>
 
-                    <div>
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-2xl font-bold text-white">Tracklist</h3>
-                            <span className="text-sm text-gray-500">{album.tracklist?.length || 0} Tracks</span>
+                    <motion.div
+                        initial={{ y: 50, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                    >
+                        <div className="flex items-center justify-between mb-10 border-b border-white/[0.05] pb-6">
+                            <h3 className="text-4xl font-display font-bold text-white tracking-tightest">Sequence</h3>
+                            <span className="font-mono text-[11px] text-gray-700 uppercase font-black tracking-widest bg-white/5 px-4 py-2 rounded-xl">{album.tracklist?.length || 0} TRACKS TOTAL</span>
                         </div>
-                        <div className="space-y-1">
+                        <div className="grid grid-cols-1 gap-2">
                             {album.tracklist?.map((track: any, index: number) => (
-                                <div key={index} className="group flex items-center p-3 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-gray-800 cursor-pointer">
-                                    <span className="w-8 text-gray-600 font-mono text-sm group-hover:text-primary">{track.position || index + 1}</span>
+                                <motion.div
+                                    key={index}
+                                    whileHover={{ x: 15, backgroundColor: "rgba(255,255,255,0.03)" }}
+                                    className="group flex items-center p-6 rounded-3xl transition-all cursor-pointer border border-transparent hover:border-white/5 group shadow-sm"
+                                >
+                                    <span className="w-12 text-gray-800 font-mono text-xs group-hover:text-primary transition-colors font-black tracking-tighter">{track.position || index + 1}</span>
                                     <div className="flex-grow">
-                                        <div className="text-white font-medium">{track.title}</div>
+                                        <div className="text-white font-bold text-lg tracking-tight group-hover:text-white transition-colors">{track.title}</div>
                                     </div>
-                                    <span className="text-gray-500 font-mono text-sm">{track.duration}</span>
-                                    <div className="w-12 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <PlayCircle className="text-gray-400 hover:text-white h-6 w-6" />
+                                    <span className="text-gray-700 font-mono text-[11px] mr-10 group-hover:text-gray-400 transition-colors">{track.duration || "--:--"}</span>
+                                    <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-all duration-500 scale-90 group-hover:scale-100">
+                                        <PlayCircle className="text-primary h-12 w-12 hover:rotate-12 transition-all drop-shadow-[0_0_15px_rgba(223,255,0,0.3)]" />
                                     </div>
-                                </div>
+                                </motion.div>
                             ))}
-                            {(!album.tracklist || album.tracklist.length === 0) && (
-                                <p className="text-gray-500">No tracklist available.</p>
-                            )}
                         </div>
-                    </div>
+                    </motion.div>
 
-                    <Separator className="bg-gray-800 my-8" />
+                    <Separator className="bg-white/[0.04] my-20" />
 
-                    <div className="flex flex-col md:flex-row gap-8 text-sm text-gray-500">
-                        <div className="flex-1">
-                            <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-xs">Styles</h4>
-                            <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pb-32">
+                        <div className="bg-gradient-to-tr from-white/[0.02] to-transparent p-10 rounded-[3rem] border border-white/[0.04]">
+                            <h4 className="text-gray-600 font-black mb-10 uppercase tracking-[0.25em] text-[10px]">Sonic Spectrum</h4>
+                            <div className="flex flex-wrap gap-3">
                                 {album.styles?.map((style: string) => (
-                                    <Badge key={style} variant="outline" className="text-gray-400 border-gray-800">{style}</Badge>
+                                    <Badge key={style} variant="outline" className="text-gray-300 border-white/10 bg-black/40 font-black text-[10px] px-5 py-2.5 rounded-xl uppercase tracking-widest hover:border-primary/50 transition-colors">{style}</Badge>
                                 ))}
                             </div>
                         </div>
-                        <div className="flex-1">
-                            <h4 className="text-white font-bold mb-3 uppercase tracking-wider text-xs">Community</h4>
-                            <p><strong className="text-gray-400">Have:</strong> {album.community?.have || 0}</p>
-                            <p><strong className="text-gray-400">Want:</strong> {album.community?.want || 0}</p>
+                        <div className="bg-gradient-to-tr from-white/[0.02] to-transparent p-10 rounded-[3rem] border border-white/[0.04]">
+                            <h4 className="text-gray-600 font-black mb-10 uppercase tracking-[0.25em] text-[10px]">Ownership Data</h4>
+                            <div className="grid grid-cols-2 gap-8">
+                                <div className="flex flex-col">
+                                    <span className="text-5xl font-black text-white tracking-widest">{album.community?.have || 0}</span>
+                                    <span className="text-[10px] uppercase font-black tracking-[0.15em] text-gray-500 mt-3">Active Vaults</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-5xl font-black text-secondary tracking-widest">{album.community?.want || 0}</span>
+                                    <span className="text-[10px] uppercase font-black tracking-[0.15em] text-gray-500 mt-3">Target Seekers</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 }

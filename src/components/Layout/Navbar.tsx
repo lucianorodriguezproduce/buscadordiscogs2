@@ -9,8 +9,6 @@ export const Navbar = () => {
 
     const navItems = [
         { path: "/", label: "Discover", icon: Search },
-        { path: "/collection", label: "Archive", icon: Library },
-        { path: "/wantlist", label: "Wantlist", icon: Heart },
         { path: "/editorial", label: "Editorial", icon: BookOpen },
     ];
 

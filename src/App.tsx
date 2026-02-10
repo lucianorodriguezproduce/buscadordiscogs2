@@ -5,9 +5,7 @@ import Layout from "@/components/Layout/Layout";
 import Login from "@/pages/Login";
 import Home from "@/pages/Home";
 import AlbumDetail from "@/pages/AlbumDetail";
-import Collection from "@/pages/Collection";
 import Editorial from "@/pages/Editorial";
-import Wantlist from "@/pages/Wantlist";
 import Profile from "@/pages/Profile";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import SyncDashboard from "@/pages/Admin/SyncDashboard";
@@ -37,8 +35,6 @@ function AppContent() {
           <Route path="/album/:id" element={<AlbumDetail />} />
 
           <Route element={<ProtectedRoute />}>
-            <Route path="/collection" element={<Collection />} />
-            <Route path="/wantlist" element={<Wantlist />} />
             <Route path="/editorial" element={<Editorial />} />
             <Route path="/profile" element={<Profile />} />
           </Route>

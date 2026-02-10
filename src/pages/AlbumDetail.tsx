@@ -71,7 +71,7 @@ export default function AlbumDetail() {
                         <img
                             src={album.images?.[0]?.uri || album.thumb}
                             alt={album.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-out"
                             onError={(e) => {
                                 (e.target as HTMLImageElement).src = "https://placehold.co/800x800/121212/FFFFFF?text=No+Cover";
                             }}
@@ -85,8 +85,8 @@ export default function AlbumDetail() {
                             <Button
                                 onClick={() => user ? toggleCollection(album.id.toString(), { title: album.title, cover_image: album.images?.[0]?.uri || album.thumb }) : alert("Please synchronize to collect.")}
                                 className={`h-20 text-lg font-black transition-all transform hover:-translate-y-2 rounded-2xl shadow-xl select-none overflow-hidden relative group ${isInCollection(album.id.toString())
-                                        ? "bg-white text-black border-2 border-primary"
-                                        : "bg-primary text-black hover:bg-white shadow-primary/10"
+                                    ? "bg-white text-black border-2 border-primary"
+                                    : "bg-primary text-black hover:bg-white shadow-primary/10"
                                     }`}
                             >
                                 <Library className={`mr-3 h-6 w-6 relative z-10 ${isInCollection(album.id.toString()) ? "text-primary" : ""}`} />
@@ -96,8 +96,8 @@ export default function AlbumDetail() {
                                 onClick={() => user ? toggleWantlist(album.id.toString(), { title: album.title, cover_image: album.images?.[0]?.uri || album.thumb }) : alert("Please synchronize for wantlist.")}
                                 variant="outline"
                                 className={`h-20 text-lg font-black transition-all transform hover:-translate-y-2 rounded-2xl bg-black/40 shadow-xl select-none group ${isInWantlist(album.id.toString())
-                                        ? "border-secondary text-secondary bg-secondary/10"
-                                        : "text-secondary border-secondary/20 hover:bg-secondary/10 hover:border-secondary"
+                                    ? "border-secondary text-secondary bg-secondary/10"
+                                    : "text-secondary border-secondary/20 hover:bg-secondary/10 hover:border-secondary"
                                     }`}
                             >
                                 <Heart className={`mr-3 h-6 w-6 ${isInWantlist(album.id.toString()) ? "fill-secondary text-secondary" : ""}`} />

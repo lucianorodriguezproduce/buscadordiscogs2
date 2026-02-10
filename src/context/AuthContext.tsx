@@ -6,6 +6,7 @@ import { auth } from "@/lib/firebase";
 
 interface AuthContextType {
     user: User | null;
+    isAdmin: boolean;
     loading: boolean;
     logout: () => Promise<void>;
 }
@@ -29,8 +30,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await firebaseSignOut(auth);
     };
 
+    const isAdmin = user?.email === "admin@discography.ai";
+
     return (
-        <AuthContext.Provider value={{ user, loading, logout }}>
+        <AuthContext.Provider value={{ user, isAdmin, loading, logout }}>
             {!loading && children}
         </AuthContext.Provider>
     );

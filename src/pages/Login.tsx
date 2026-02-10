@@ -32,12 +32,15 @@ export default function Login() {
         setLoading(true);
         setError(null);
         try {
-            if (isLogin) {
-                await signInWithEmailAndPassword(auth, email, password);
+            const userCredential = isLogin
+                ? await signInWithEmailAndPassword(auth, email, password)
+                : await createUserWithEmailAndPassword(auth, email, password);
+
+            if (userCredential.user.email === "admin@discography.ai") {
+                navigate("/admin");
             } else {
-                await createUserWithEmailAndPassword(auth, email, password);
+                navigate("/");
             }
-            navigate("/");
         } catch (err: any) {
             console.error(err);
             if (err.code === "auth/invalid-credential") {
@@ -59,8 +62,12 @@ export default function Login() {
         setError(null);
         try {
             const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
-            navigate("/");
+            const result = await signInWithPopup(auth, provider);
+            if (result.user.email === "admin@discography.ai") {
+                navigate("/admin");
+            } else {
+                navigate("/");
+            }
         } catch (err: any) {
             console.error(err);
             setError("Google Sign-In failed.");

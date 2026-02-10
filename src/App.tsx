@@ -39,7 +39,7 @@ function AppContent() {
         </Route>
 
         {/* Nested Admin Routes */}
-        <Route element={<ProtectedRoute />}>
+        <Route element={<ProtectedRoute adminOnly={true} />}>
           <Route path="/admin" element={<AdminLayout><Outlet /></AdminLayout>}>
             <Route index element={<SyncDashboard />} />
             <Route path="sync" element={<SyncDashboard />} />

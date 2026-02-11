@@ -1,0 +1,305 @@
+import { useState, useEffect } from "react";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+    Plus,
+    Edit2,
+    Trash2,
+    Star,
+    Clock,
+    FileText,
+    Users,
+    Save,
+    X
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+interface Article {
+    id: string;
+    title: string;
+    excerpt: string;
+    category: string;
+    author: string;
+    image: string;
+    readTime: string;
+    featured: boolean;
+    status: 'draft' | 'published';
+    createdAt: any;
+}
+
+export default function EditorialManager() {
+    const [articles, setArticles] = useState<Article[]>([]);
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentArticle, setCurrentArticle] = useState<Partial<Article> | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const q = query(collection(db, "editorial"), orderBy("createdAt", "desc"));
+        const unsub = onSnapshot(q, (snap) => {
+            setArticles(snap.docs.map(d => ({ id: d.id, ...d.data() } as Article)));
+            setLoading(false);
+        });
+        return unsub;
+    }, []);
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            if (currentArticle?.id) {
+                await updateDoc(doc(db, "editorial", currentArticle.id), {
+                    ...currentArticle,
+                    updatedAt: serverTimestamp()
+                });
+            } else {
+                await addDoc(collection(db, "editorial"), {
+                    ...currentArticle,
+                    createdAt: serverTimestamp(),
+                    status: 'draft',
+                    featured: false
+                });
+            }
+            setIsEditing(false);
+            setCurrentArticle(null);
+        } catch (error) {
+            console.error("Error saving article:", error);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (confirm("Are you sure you want to delete this dispatch?")) {
+            await deleteDoc(doc(db, "editorial", id));
+        }
+    };
+
+    const toggleFeatured = async (article: Article) => {
+        await updateDoc(doc(db, "editorial", article.id), {
+            featured: !article.featured
+        });
+    };
+
+    return (
+        <div className="space-y-10">
+            <header className="flex items-end justify-between">
+                <div>
+                    <h1 className="text-6xl font-display font-black text-white tracking-tightest leading-none">Editorial <span className="text-primary">Console</span></h1>
+                    <p className="text-gray-500 mt-4 text-lg font-medium max-w-2xl">Manage long-form content, interviews, and sonic dispatches.</p>
+                </div>
+                <Button
+                    onClick={() => { setCurrentArticle({}); setIsEditing(true); }}
+                    className="bg-primary text-black font-black uppercase tracking-widest px-8 py-6 rounded-2xl hover:scale-105 transition-all shadow-xl shadow-primary/20"
+                >
+                    <Plus className="mr-2 h-5 w-5" /> New Dispatch
+                </Button>
+            </header>
+
+            {/* Content List */}
+            <div className="grid grid-cols-1 gap-6">
+                {loading ? (
+                    <div className="py-20 text-center text-gray-500 font-black uppercase tracking-widest">Initialising Data Streams...</div>
+                ) : articles.length === 0 ? (
+                    <div className="py-40 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[3rem] space-y-6 text-center">
+                        <FileText className="h-12 w-12 text-gray-700" />
+                        <p className="text-xl font-display font-medium text-gray-500">No dispatches found in the database.</p>
+                    </div>
+                ) : (
+                    articles.map((article) => (
+                        <Card key={article.id} className="bg-white/[0.03] border-white/5 backdrop-blur-3xl rounded-[2.5rem] overflow-hidden group hover:border-white/10 transition-all">
+                            <div className="flex flex-col md:flex-row">
+                                <div className="w-full md:w-64 aspect-square md:aspect-auto overflow-hidden relative">
+                                    <img src={article.image} alt={article.title} className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700" />
+                                    {article.featured && (
+                                        <div className="absolute top-4 left-4 bg-primary text-black p-2 rounded-xl shadow-lg">
+                                            <Star className="h-4 w-4 fill-current" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1 p-8 flex flex-col justify-between">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <Badge className="bg-white/5 text-gray-400 border-white/5 uppercase tracking-widest text-[10px]">
+                                                {article.category}
+                                            </Badge>
+                                            <Badge className={article.status === 'published' ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}>
+                                                {article.status}
+                                            </Badge>
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-white group-hover:text-primary transition-colors">{article.title}</h3>
+                                        <p className="text-gray-500 line-clamp-2">{article.excerpt}</p>
+                                    </div>
+
+                                    <div className="flex items-center justify-between mt-8">
+                                        <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-gray-600">
+                                            <div className="flex items-center gap-2"><Users className="h-4 w-4" /> {article.author}</div>
+                                            <div className="flex items-center gap-2"><Clock className="h-4 w-4" /> {article.readTime}</div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => toggleFeatured(article)}
+                                                className={article.featured ? "text-primary hover:text-primary" : "text-gray-500 hover:text-white"}
+                                            >
+                                                <Star className={article.featured ? "fill-current h-5 w-5" : "h-5 w-5"} />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => { setCurrentArticle(article); setIsEditing(true); }}
+                                                className="text-gray-500 hover:text-white"
+                                            >
+                                                <Edit2 className="h-5 w-5" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleDelete(article.id)}
+                                                className="text-gray-500 hover:text-red-500"
+                                            >
+                                                <Trash2 className="h-5 w-5" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+                    ))
+                )}
+            </div>
+
+            {/* Edit Modal */}
+            <AnimatePresence>
+                {isEditing && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 md:p-12">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/90 backdrop-blur-2xl"
+                            onClick={() => setIsEditing(false)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative w-full max-w-4xl bg-[#0a0a0a] border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden"
+                        >
+                            <div className="p-10 border-b border-white/5 flex items-center justify-between">
+                                <h2 className="text-3xl font-black text-white uppercase tracking-tightest">
+                                    {currentArticle?.id ? "Modify Dispatch" : "Initialise Dispatch"}
+                                </h2>
+                                <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)} className="text-gray-500 hover:text-white">
+                                    <X className="h-8 w-8" />
+                                </Button>
+                            </div>
+
+                            <form onSubmit={handleSave} className="p-10 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Dispatch Title</label>
+                                        <input
+                                            value={currentArticle?.title || ""}
+                                            onChange={e => setCurrentArticle({ ...currentArticle, title: e.target.value })}
+                                            className="w-full bg-white/5 border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary transition-all outline-none"
+                                            placeholder="Enter title..."
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Intel Category</label>
+                                        <select
+                                            value={currentArticle?.category || ""}
+                                            onChange={e => setCurrentArticle({ ...currentArticle, category: e.target.value })}
+                                            className="w-full bg-white/5 border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary transition-all outline-none"
+                                            required
+                                        >
+                                            <option value="" className="bg-black">Select Category</option>
+                                            <option value="Interviews" className="bg-black">Interviews</option>
+                                            <option value="Culture" className="bg-black">Culture</option>
+                                            <option value="Architecture" className="bg-black">Architecture</option>
+                                            <option value="Gear Reviews" className="bg-black">Gear Reviews</option>
+                                            <option value="Crate Digging" className="bg-black">Crate Digging</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Brief Excerpt</label>
+                                    <textarea
+                                        value={currentArticle?.excerpt || ""}
+                                        onChange={e => setCurrentArticle({ ...currentArticle, excerpt: e.target.value })}
+                                        className="w-full bg-white/5 border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary transition-all outline-none h-24 resize-none"
+                                        placeholder="Enter short summary..."
+                                        required
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Author Name</label>
+                                        <input
+                                            value={currentArticle?.author || ""}
+                                            onChange={e => setCurrentArticle({ ...currentArticle, author: e.target.value })}
+                                            className="w-full bg-white/5 border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary transition-all outline-none"
+                                            placeholder="System Pilot..."
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Image Source (URL)</label>
+                                        <input
+                                            value={currentArticle?.image || ""}
+                                            onChange={e => setCurrentArticle({ ...currentArticle, image: e.target.value })}
+                                            className="w-full bg-white/5 border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary transition-all outline-none"
+                                            placeholder="Unsplash / Direct link..."
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Read Duration</label>
+                                        <input
+                                            value={currentArticle?.readTime || ""}
+                                            onChange={e => setCurrentArticle({ ...currentArticle, readTime: e.target.value })}
+                                            className="w-full bg-white/5 border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary transition-all outline-none"
+                                            placeholder="e.g. 15 min read"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-12 pt-4">
+                                    <div className="flex items-center gap-4">
+                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Protocol Status:</label>
+                                        <div className="flex bg-white/5 p-1 rounded-xl">
+                                            {['draft', 'published'].map((s) => (
+                                                <button
+                                                    key={s}
+                                                    type="button"
+                                                    onClick={() => setCurrentArticle({ ...currentArticle, status: s as any })}
+                                                    className={`px-6 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${currentArticle?.status === s ? 'bg-primary text-black' : 'text-gray-500 hover:text-white'}`}
+                                                >
+                                                    {s}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-10 border-t border-white/5 bg-black/40 -mx-10 -mb-10 flex justify-end gap-4">
+                                    <Button type="button" variant="ghost" onClick={() => setIsEditing(false)} className="text-gray-500 hover:text-white font-bold h-14 px-8 rounded-2xl">
+                                        Esc Abort
+                                    </Button>
+                                    <Button type="submit" className="bg-primary text-black font-black uppercase tracking-widest h-14 px-12 rounded-2xl hover:scale-105 transition-all shadow-xl shadow-primary/20">
+                                        <Save className="mr-2 h-5 w-5" /> Commit Dispatch
+                                    </Button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}

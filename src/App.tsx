@@ -11,6 +11,7 @@ import AdminLayout from "@/components/Admin/AdminLayout";
 import SyncDashboard from "@/pages/Admin/SyncDashboard";
 import TelemetryLogs from "@/components/Admin/TelemetryLogs";
 import SecuritySettings from "@/pages/Admin/SecuritySettings";
+import EditorialManager from "@/pages/Admin/EditorialManager";
 import { ProtectedRoute } from "@/components/Guard/ProtectedRoute";
 import { useTelemetry } from "@/hooks/useTelemetry";
 
@@ -47,6 +48,7 @@ function AppContent() {
             <Route path="sync" element={<SyncDashboard />} />
             <Route path="logs" element={<TelemetryLogs />} />
             <Route path="security" element={<SecuritySettings />} />
+            <Route path="editorial" element={<EditorialManager />} />
           </Route>
         </Route>
       </Routes>

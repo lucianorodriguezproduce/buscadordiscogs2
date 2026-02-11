@@ -1,10 +1,9 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Clock, User, ArrowRight, BookOpen, Search } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query, where, orderBy } from "firebase/firestore";
+import { collection, onSnapshot, query, where, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 
 interface Article {
     id: string;
@@ -22,6 +21,8 @@ interface Article {
 export default function Editorial() {
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(true);
+    const [email, setEmail] = useState("");
+    const [isSubscribing, setIsSubscribing] = useState(false);
 
     useEffect(() => {
         const q = query(
@@ -35,6 +36,25 @@ export default function Editorial() {
         });
         return unsub;
     }, []);
+
+    const handleSubscribe = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!email) return;
+        setIsSubscribing(true);
+        try {
+            await addDoc(collection(db, "subscribers"), {
+                email,
+                subscribedAt: serverTimestamp()
+            });
+            alert("Transmission protocol established. Welcome to the Sonic Protocol.");
+            setEmail("");
+        } catch (error) {
+            console.error("Error subscribing:", error);
+            alert("Connection error. Re-initialise.");
+        } finally {
+            setIsSubscribing(false);
+        }
+    };
 
     const featured = articles.find(a => a.featured) || articles[0];
     const others = articles.filter(a => a.id !== featured?.id);
@@ -196,19 +216,26 @@ export default function Editorial() {
                     </div>
 
                     <div className="relative z-10 w-full md:w-[500px]">
-                        <div className="flex flex-col gap-4">
+                        <form onSubmit={handleSubscribe} className="flex flex-col gap-4">
                             <div className="flex bg-black p-3 rounded-[2.5rem] border border-black/5 shadow-2xl">
                                 <input
                                     type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     placeholder="Enter Terminal ID (Email)"
                                     className="bg-transparent border-0 focus:ring-0 text-white placeholder:text-white/30 font-black uppercase tracking-widest text-sm px-8 w-full outline-none"
+                                    required
                                 />
-                                <button className="bg-primary text-black px-12 py-6 rounded-[2rem] font-black uppercase tracking-widest text-xs hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/40">
-                                    Initialize
+                                <button
+                                    type="submit"
+                                    disabled={isSubscribing}
+                                    className="bg-primary text-black px-12 py-6 rounded-[2rem] font-black uppercase tracking-widest text-xs hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/40 disabled:opacity-50"
+                                >
+                                    {isSubscribing ? "Linking..." : "Initialize"}
                                 </button>
                             </div>
                             <p className="text-[10px] font-black text-black/40 uppercase tracking-widest text-center">Encrypted via SonicVault Protocol 3.0</p>
-                        </div>
+                        </form>
                     </div>
                 </div>
             </section>

@@ -36,16 +36,29 @@ export default function EditorialManager() {
     const [currentArticle, setCurrentArticle] = useState<Partial<Article> | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const [activeSubTab, setActiveSubTab] = useState<"articles" | "subscribers">("articles");
+    const [subscribers, setSubscribers] = useState<any[]>([]);
+
     useEffect(() => {
-        const q = query(collection(db, "editorial"), orderBy("createdAt", "desc"));
-        const unsub = onSnapshot(q, (snap) => {
+        const qArt = query(collection(db, "editorial"), orderBy("createdAt", "desc"));
+        const unsubArt = onSnapshot(qArt, (snap) => {
             setArticles(snap.docs.map(d => ({ id: d.id, ...d.data() } as Article)));
             setLoading(false);
         });
-        return unsub;
+
+        const qSubs = query(collection(db, "subscribers"), orderBy("subscribedAt", "desc"));
+        const unsubSubs = onSnapshot(qSubs, (snap) => {
+            setSubscribers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        });
+
+        return () => {
+            unsubArt();
+            unsubSubs();
+        };
     }, []);
 
     const handleSave = async (e: React.FormEvent) => {
+        // ... (existing code remains same)
         e.preventDefault();
         try {
             if (currentArticle?.id) {
@@ -95,79 +108,162 @@ export default function EditorialManager() {
                 </Button>
             </header>
 
-            {/* Content List */}
-            <div className="grid grid-cols-1 gap-6">
-                {loading ? (
-                    <div className="py-20 text-center text-gray-500 font-black uppercase tracking-widest">Initialising Data Streams...</div>
-                ) : articles.length === 0 ? (
-                    <div className="py-40 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[3rem] space-y-6 text-center">
-                        <FileText className="h-12 w-12 text-gray-700" />
-                        <p className="text-xl font-display font-medium text-gray-500">No dispatches found in the database.</p>
-                    </div>
-                ) : (
-                    articles.map((article) => (
-                        <Card key={article.id} className="bg-white/[0.03] border-white/5 backdrop-blur-3xl rounded-[2.5rem] overflow-hidden group hover:border-white/10 transition-all">
-                            <div className="flex flex-col md:flex-row">
-                                <div className="w-full md:w-64 aspect-square md:aspect-auto overflow-hidden relative">
-                                    <img src={article.image} alt={article.title} className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700" />
-                                    {article.featured && (
-                                        <div className="absolute top-4 left-4 bg-primary text-black p-2 rounded-xl shadow-lg">
-                                            <Star className="h-4 w-4 fill-current" />
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex-1 p-8 flex flex-col justify-between">
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <Badge className="bg-white/5 text-gray-400 border-white/5 uppercase tracking-widest text-[10px]">
-                                                {article.category}
-                                            </Badge>
-                                            <Badge className={article.status === 'published' ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}>
-                                                {article.status}
-                                            </Badge>
-                                        </div>
-                                        <h3 className="text-2xl font-bold text-white group-hover:text-primary transition-colors">{article.title}</h3>
-                                        <p className="text-gray-500 line-clamp-2">{article.excerpt}</p>
-                                    </div>
+            {/* Navigation Tabs */}
+            <div className="flex border-b border-white/5 space-x-12">
+                {[
+                    { id: "articles", label: "Intel Dispatches", icon: FileText },
+                    { id: "subscribers", label: "Protocol Subscribers", icon: Users },
+                ].map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveSubTab(tab.id as any)}
+                        className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-widest pb-6 transition-all relative ${activeSubTab === tab.id ? "text-primary" : "text-gray-500 hover:text-white"
+                            }`}
+                    >
+                        <tab.icon className="h-4 w-4" />
+                        {tab.label}
+                        {activeSubTab === tab.id && (
+                            <motion.div layoutId="editorial-tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                        )}
+                    </button>
+                ))}
+            </div>
 
-                                    <div className="flex items-center justify-between mt-8">
-                                        <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-gray-600">
-                                            <div className="flex items-center gap-2"><Users className="h-4 w-4" /> {article.author}</div>
-                                            <div className="flex items-center gap-2"><Clock className="h-4 w-4" /> {article.readTime}</div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => toggleFeatured(article)}
-                                                className={article.featured ? "text-primary hover:text-primary" : "text-gray-500 hover:text-white"}
-                                            >
-                                                <Star className={article.featured ? "fill-current h-5 w-5" : "h-5 w-5"} />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => { setCurrentArticle(article); setIsEditing(true); }}
-                                                className="text-gray-500 hover:text-white"
-                                            >
-                                                <Edit2 className="h-5 w-5" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleDelete(article.id)}
-                                                className="text-gray-500 hover:text-red-500"
-                                            >
-                                                <Trash2 className="h-5 w-5" />
-                                            </Button>
-                                        </div>
-                                    </div>
+            {/* Content Area */}
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={activeSubTab}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                >
+                    {activeSubTab === "articles" ? (
+                        <div className="grid grid-cols-1 gap-6">
+                            {loading ? (
+                                <div className="py-20 text-center text-gray-500 font-black uppercase tracking-widest">Initialising Data Streams...</div>
+                            ) : articles.length === 0 ? (
+                                <div className="py-40 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[3rem] space-y-6 text-center">
+                                    <FileText className="h-12 w-12 text-gray-700" />
+                                    <p className="text-xl font-display font-medium text-gray-500">No dispatches found in the database.</p>
                                 </div>
+                            ) : (
+                                articles.map((article) => (
+                                    <Card key={article.id} className="bg-white/[0.03] border-white/5 backdrop-blur-3xl rounded-[2.5rem] overflow-hidden group hover:border-white/10 transition-all">
+                                        <div className="flex flex-col md:flex-row">
+                                            <div className="w-full md:w-64 aspect-square md:aspect-auto overflow-hidden relative">
+                                                <img src={article.image} alt={article.title} className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700" />
+                                                {article.featured && (
+                                                    <div className="absolute top-4 left-4 bg-primary text-black p-2 rounded-xl shadow-lg">
+                                                        <Star className="h-4 w-4 fill-current" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 p-8 flex flex-col justify-between">
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <Badge className="bg-white/5 text-gray-400 border-white/5 uppercase tracking-widest text-[10px]">
+                                                            {article.category}
+                                                        </Badge>
+                                                        <Badge className={article.status === 'published' ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}>
+                                                            {article.status}
+                                                        </Badge>
+                                                    </div>
+                                                    <h3 className="text-2xl font-bold text-white group-hover:text-primary transition-colors">{article.title}</h3>
+                                                    <p className="text-gray-500 line-clamp-2">{article.excerpt}</p>
+                                                </div>
+
+                                                <div className="flex items-center justify-between mt-8">
+                                                    <div className="flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-gray-600">
+                                                        <div className="flex items-center gap-2"><Users className="h-4 w-4" /> {article.author}</div>
+                                                        <div className="flex items-center gap-2"><Clock className="h-4 w-4" /> {article.readTime}</div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => toggleFeatured(article)}
+                                                            className={article.featured ? "text-primary hover:text-primary" : "text-gray-500 hover:text-white"}
+                                                        >
+                                                            <Star className={article.featured ? "fill-current h-5 w-5" : "h-5 w-5"} />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => { setCurrentArticle(article); setIsEditing(true); }}
+                                                            className="text-gray-500 hover:text-white"
+                                                        >
+                                                            <Edit2 className="h-5 w-5" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => handleDelete(article.id)}
+                                                            className="text-gray-500 hover:text-red-500"
+                                                        >
+                                                            <Trash2 className="h-5 w-5" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Card>
+                                ))
+                            )}
+                        </div>
+                    ) : (
+                        <Card className="bg-white/[0.03] border-white/5 backdrop-blur-3xl rounded-[2.5rem] overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead>
+                                        <tr className="border-b border-white/5">
+                                            <th className="px-10 py-8 text-[10px] font-black text-gray-500 uppercase tracking-widest">Subscriber ID</th>
+                                            <th className="px-10 py-8 text-[10px] font-black text-gray-500 uppercase tracking-widest">Connection Node</th>
+                                            <th className="px-10 py-8 text-[10px] font-black text-gray-500 uppercase tracking-widest">Protocol Date</th>
+                                            <th className="px-10 py-8 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {subscribers.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={4} className="px-10 py-20 text-center text-gray-500 font-bold">No active subscriptions detected.</td>
+                                            </tr>
+                                        ) : (
+                                            subscribers.map((sub, i) => (
+                                                <tr key={sub.id} className="border-b border-white/[0.02] hover:bg-white/[0.01] transition-all group">
+                                                    <td className="px-10 py-6">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                                                            <span className="text-sm font-black text-white">{sub.id.slice(0, 8)}...</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-10 py-6 text-sm text-gray-400 group-hover:text-white transition-colors">{sub.email}</td>
+                                                    <td className="px-10 py-6 text-xs text-gray-600 font-mono">
+                                                        {sub.subscribedAt?.toDate().toLocaleDateString() || "Unknown"}
+                                                    </td>
+                                                    <td className="px-10 py-6 text-right">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={async () => {
+                                                                if (confirm("Terminate subscription protocol?")) {
+                                                                    await deleteDoc(doc(db, "subscribers", sub.id));
+                                                                }
+                                                            }}
+                                                            className="text-gray-500 hover:text-red-500"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
                         </Card>
-                    ))
-                )}
-            </div>
+                    )}
+                </motion.div>
+            </AnimatePresence>
 
             {/* Edit Modal */}
             <AnimatePresence>

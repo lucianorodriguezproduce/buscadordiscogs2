@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Disc, Search, Library, User as UserIcon, LogOut, Heart, BookOpen } from "lucide-react";
+import { Disc, Search, User as UserIcon, LogOut, BookOpen } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
 

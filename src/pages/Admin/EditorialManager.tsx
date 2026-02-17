@@ -44,11 +44,17 @@ export default function EditorialManager() {
         const unsubArt = onSnapshot(qArt, (snap) => {
             setArticles(snap.docs.map(d => ({ id: d.id, ...d.data() } as Article)));
             setLoading(false);
+        }, (error) => {
+            console.error("Editorial listener error:", error);
+            // Don't block the UI, just stop loading
+            setLoading(false);
         });
 
         const qSubs = query(collection(db, "subscribers"), orderBy("subscribedAt", "desc"));
         const unsubSubs = onSnapshot(qSubs, (snap) => {
             setSubscribers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        }, (error) => {
+            console.error("Subscribers listener error:", error);
         });
 
         return () => {
@@ -60,6 +66,8 @@ export default function EditorialManager() {
     const handleSave = async (e: React.FormEvent) => {
         // ... (existing code remains same)
         e.preventDefault();
+        console.log("Attempting to save. Current User:", db.app.options.apiKey ? "Connected" : "No Config");
+
         try {
             if (currentArticle?.id) {
                 await updateDoc(doc(db, "editorial", currentArticle.id), {
@@ -76,8 +84,9 @@ export default function EditorialManager() {
             }
             setIsEditing(false);
             setCurrentArticle(null);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error saving article:", error);
+            alert(`Error saving: ${error.message || error}`);
         }
     };
 

@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Clock, User, ArrowRight, BookOpen, Search } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query, where, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, onSnapshot, query, where, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
 import { useState, useEffect } from "react";
 
 interface Article {
@@ -16,7 +16,6 @@ interface Article {
     image: string;
     featured: boolean;
     status: 'draft' | 'published';
-    createdAt?: any;
 }
 
 export default function Editorial() {
@@ -28,17 +27,11 @@ export default function Editorial() {
     useEffect(() => {
         const q = query(
             collection(db, "editorial"),
-            where("status", "==", "published")
+            where("status", "==", "published"),
+            orderBy("createdAt", "desc")
         );
         const unsub = onSnapshot(q, (snap) => {
-            const fetchedArticles = snap.docs.map(d => ({ id: d.id, ...d.data() } as Article));
-            // Client-side sort to avoid composite index requirement
-            fetchedArticles.sort((a, b) => {
-                const dateA = a.createdAt?.seconds || 0;
-                const dateB = b.createdAt?.seconds || 0;
-                return dateB - dateA;
-            });
-            setArticles(fetchedArticles);
+            setArticles(snap.docs.map(d => ({ id: d.id, ...d.data() } as Article)));
             setLoading(false);
         }, (error) => {
             console.error("Editorial listener error:", error);

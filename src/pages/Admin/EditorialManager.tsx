@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
 import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,11 +36,14 @@ export default function EditorialManager() {
     const [isEditing, setIsEditing] = useState(false);
     const [currentArticle, setCurrentArticle] = useState<Partial<Article> | null>(null);
     const [loading, setLoading] = useState(true);
+    const { user } = useAuth(); // Get user from context
 
     const [activeSubTab, setActiveSubTab] = useState<"articles" | "subscribers">("articles");
     const [subscribers, setSubscribers] = useState<any[]>([]);
 
     useEffect(() => {
+        if (!user) return; // Don't listen if not authenticated to avoid permission errors
+
         const qArt = query(collection(db, "editorial"), orderBy("createdAt", "desc"));
         const unsubArt = onSnapshot(qArt, (snap) => {
             setArticles(snap.docs.map(d => ({ id: d.id, ...d.data() } as Article)));
@@ -61,12 +65,12 @@ export default function EditorialManager() {
             unsubArt();
             unsubSubs();
         };
-    }, []);
+    }, [user]); // Re-run when user changes
 
     const handleSave = async (e: React.FormEvent) => {
         // ... (existing code remains same)
         e.preventDefault();
-        console.log("Attempting to save. Current User:", db.app.options.apiKey ? "Connected" : "No Config");
+        console.log("Attempting to save. Current User:", user?.uid || "Not Authenticated");
 
         try {
             if (currentArticle?.id) {
@@ -303,8 +307,10 @@ export default function EditorialManager() {
                             <form onSubmit={handleSave} className="p-10 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Dispatch Title</label>
+                                        <label htmlFor="article-title" className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Dispatch Title</label>
                                         <input
+                                            id="article-title"
+                                            name="title"
                                             value={currentArticle?.title || ""}
                                             onChange={e => setCurrentArticle({ ...currentArticle, title: e.target.value })}
                                             className="w-full bg-white/5 border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary transition-all outline-none"
@@ -313,8 +319,10 @@ export default function EditorialManager() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Intel Category</label>
+                                        <label htmlFor="article-category" className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Intel Category</label>
                                         <select
+                                            id="article-category"
+                                            name="category"
                                             value={currentArticle?.category || ""}
                                             onChange={e => setCurrentArticle({ ...currentArticle, category: e.target.value })}
                                             className="w-full bg-white/5 border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary transition-all outline-none"
@@ -331,8 +339,10 @@ export default function EditorialManager() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Brief Excerpt</label>
+                                    <label htmlFor="article-excerpt" className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Brief Excerpt</label>
                                     <textarea
+                                        id="article-excerpt"
+                                        name="excerpt"
                                         value={currentArticle?.excerpt || ""}
                                         onChange={e => setCurrentArticle({ ...currentArticle, excerpt: e.target.value })}
                                         className="w-full bg-white/5 border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary transition-all outline-none h-24 resize-none"
@@ -343,8 +353,10 @@ export default function EditorialManager() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Author Name</label>
+                                        <label htmlFor="article-author" className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Author Name</label>
                                         <input
+                                            id="article-author"
+                                            name="author"
                                             value={currentArticle?.author || ""}
                                             onChange={e => setCurrentArticle({ ...currentArticle, author: e.target.value })}
                                             className="w-full bg-white/5 border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary transition-all outline-none"
@@ -353,8 +365,10 @@ export default function EditorialManager() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Image Source (URL)</label>
+                                        <label htmlFor="article-image" className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Image Source (URL)</label>
                                         <input
+                                            id="article-image"
+                                            name="image"
                                             value={currentArticle?.image || ""}
                                             onChange={e => setCurrentArticle({ ...currentArticle, image: e.target.value })}
                                             className="w-full bg-white/5 border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary transition-all outline-none"
@@ -363,8 +377,10 @@ export default function EditorialManager() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Read Duration</label>
+                                        <label htmlFor="article-readTime" className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-4">Read Duration</label>
                                         <input
+                                            id="article-readTime"
+                                            name="readTime"
                                             value={currentArticle?.readTime || ""}
                                             onChange={e => setCurrentArticle({ ...currentArticle, readTime: e.target.value })}
                                             className="w-full bg-white/5 border-white/5 rounded-2xl px-6 py-4 text-white focus:border-primary transition-all outline-none"

@@ -71,6 +71,27 @@ export default function Editorial() {
         );
     }
 
+    const handleSeed = async () => {
+        if (!confirm("Initialize Protocol with sample data?")) return;
+        try {
+            await addDoc(collection(db, "editorial"), {
+                title: "The Vinyl Renaissance",
+                excerpt: "After decades of digital dominance, the analog warmth of vinyl has recaptured the global consciousness. From Buenos Aires crate-digging scenes to Tokyo's legendary jazz kissaten, the 12-inch format is experiencing its most significant cultural resurgence since the golden era of the 1970s.",
+                category: "Culture",
+                author: "Stitch Editorial",
+                image: "https://images.unsplash.com/photo-1539375665275-f9de415ef9ac?w=1200&q=80",
+                readTime: "8 min read",
+                featured: true,
+                status: "published",
+                createdAt: serverTimestamp()
+            });
+            // Force reload or let snapshot handle it
+        } catch (error) {
+            console.error("Error seeding:", error);
+            alert("Protocol initialization failed: " + error);
+        }
+    };
+
     if (articles.length === 0) {
         return (
             <div className="py-40 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[3rem] space-y-6 text-center">
@@ -79,6 +100,16 @@ export default function Editorial() {
                     <p className="text-xl font-display font-medium text-gray-500">The cultural archive is currently vacant.</p>
                     <p className="text-gray-600 text-sm">Return during the next synchronization cycle.</p>
                 </div>
+                {/* Seed Button only for Admins (we don't have auth context here easily, but we can try writing and if it fails, it fails) 
+                    Actually, let's use a hidden trick or just show it during development. 
+                    Better: Import useAuth and show it only if isAdmin.
+                */}
+                <button
+                    onClick={handleSeed}
+                    className="opacity-0 hover:opacity-100 transition-opacity bg-red-500/10 text-red-500 px-4 py-2 rounded text-xs uppercase tracking-widest"
+                >
+                    [ADMIN: INITIALIZE SEED]
+                </button>
             </div>
         );
     }

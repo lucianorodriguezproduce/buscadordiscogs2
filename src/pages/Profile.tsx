@@ -78,9 +78,9 @@ export default function Profile() {
     const photoURL = user?.photoURL;
 
     const stats = [
-        { label: "Collection", value: collectionItems.length.toString(), icon: Music, color: "text-primary" },
-        { label: "Wantlist", value: wantlistItems.length.toString(), icon: Heart, color: "text-red-500" },
-        { label: "Account Tier", value: "Elite", icon: Award, color: "text-yellow-500" },
+        { label: "Colección", value: collectionItems.length.toString(), icon: Music, color: "text-primary" },
+        { label: "Deseados", value: wantlistItems.length.toString(), icon: Heart, color: "text-red-500" },
+        { label: "Nivel", value: "Elite", icon: Award, color: "text-yellow-500" },
     ];
 
     return (
@@ -108,12 +108,12 @@ export default function Profile() {
                         <div className="flex flex-wrap justify-center md:justify-start items-center gap-4">
                             <h1 className="text-5xl font-display font-black text-white tracking-tightest leading-none">{displayName}</h1>
                             <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1 rounded-full font-black tracking-widest uppercase text-[10px]">
-                                {isAdmin ? "Master Architect" : "Pro Collector"}
+                                {isAdmin ? "Arquitecto Maestro" : "Coleccionista Pro"}
                             </Badge>
                         </div>
                         <div className="flex flex-wrap justify-center md:justify-start items-center gap-6 text-gray-500 font-bold uppercase tracking-widest text-[10px]">
-                            <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> Berlin, DE</div>
-                            <div className="flex items-center gap-2"><Award className="h-4 w-4 text-primary" /> Elite Tier</div>
+                            <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> Buenos Aires, AR</div>
+                            <div className="flex items-center gap-2"><Award className="h-4 w-4 text-primary" /> Nivel Elite</div>
                             <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-primary" /> Est. 2024</div>
                         </div>
                     </div>
@@ -129,9 +129,9 @@ export default function Profile() {
             {/* Navigation Tabs */}
             <div className="flex items-center justify-center md:justify-start gap-12 border-b border-white/5 pb-0">
                 {[
-                    { id: "overview", label: "Overview", icon: Zap },
-                    { id: "archive", label: "Archive", icon: Box },
-                    { id: "wantlist", label: "Wantlist", icon: Heart },
+                    { id: "overview", label: "General", icon: Zap },
+                    { id: "archive", label: "Archivo", icon: Box },
+                    { id: "wantlist", label: "Deseados", icon: Heart },
                 ].map((tab) => (
                     <button
                         key={tab.id}
@@ -176,7 +176,7 @@ export default function Profile() {
 
                             {/* Recent Highlights inside Overview */}
                             <div className="space-y-10">
-                                <h3 className="text-2xl font-display font-black text-white uppercase tracking-widest">Recent <span className="text-primary">Acquisitions</span></h3>
+                                <h3 className="text-2xl font-display font-black text-white uppercase tracking-widest">Adquisiciones <span className="text-primary">Recientes</span></h3>
                                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
                                     {(loading ? Array.from({ length: 6 }) : collectionItems.slice(0, 6)).map((item: any, i) => (
                                         item ? (
@@ -200,10 +200,10 @@ export default function Profile() {
                             <div className="flex items-end justify-between">
                                 <div>
                                     <h2 className="text-4xl font-display font-black text-white tracking-tightest leading-none">
-                                        Personal <span className="text-primary">{activeTab === "archive" ? "Archive" : "Wantlist"}</span>
+                                        {activeTab === "archive" ? "Archivo" : "Lista de"} <span className="text-primary">{activeTab === "archive" ? "Personal" : "Deseados"}</span>
                                     </h2>
                                     <p className="text-gray-500 mt-4 text-lg font-medium">
-                                        {activeTab === "archive" ? "Managing your verified physical library." : "Tracking high-value acquisitions."}
+                                        {activeTab === "archive" ? "Gestionando tu biblioteca física verificada." : "Siguiendo adquisiciones de alto valor."}
                                     </p>
                                 </div>
                             </div>
@@ -215,8 +215,8 @@ export default function Profile() {
                                     <div className="col-span-full py-40 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[3rem] space-y-6 text-center">
                                         <Search className="h-12 w-12 text-gray-700" />
                                         <div className="space-y-2">
-                                            <p className="text-xl font-display font-medium text-gray-500">Zero entries detected in this sector.</p>
-                                            <Link to="/" className="text-primary font-black uppercase tracking-widest text-[10px] hover:underline underline-offset-8">Commence Data Discovery</Link>
+                                            <p className="text-xl font-display font-medium text-gray-500">No se detectaron entradas en este sector.</p>
+                                            <Link to="/" className="text-primary font-black uppercase tracking-widest text-[10px] hover:underline underline-offset-8">Iniciar Descubrimiento de Datos</Link>
                                         </div>
                                     </div>
                                 ) : (

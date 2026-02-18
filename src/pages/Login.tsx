@@ -32,13 +32,6 @@ export default function Login() {
         setLoading(true);
         setError(null);
         try {
-            // Master Bypass for Admin
-            if (email === "admin@discography.ai" && password === "154188914") {
-                localStorage.setItem("admin_session", "true");
-                window.location.href = "/admin";
-                return;
-            }
-
             const userCredential = isLogin
                 ? await signInWithEmailAndPassword(auth, email, password)
                 : await createUserWithEmailAndPassword(auth, email, password);

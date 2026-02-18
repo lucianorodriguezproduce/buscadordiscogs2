@@ -24,9 +24,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
             setLoading(false);
+
             if (currentUser?.email === "admin@discography.ai") {
                 localStorage.setItem("admin_session", "true");
                 setIsMasterAdmin(true);
+            } else if (!currentUser) {
+                // Root fix: If Firebase says there is no user, clear ANY admin flags
+                localStorage.removeItem("admin_session");
+                setIsMasterAdmin(false);
             }
         });
 
@@ -39,7 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await firebaseSignOut(auth);
     };
 
-    const isAdmin = isMasterAdmin || user?.email === "admin@discography.ai";
+    // isAdmin is now strictly gated by having a valid Firebase user object
+    const isAdmin = !!user && (isMasterAdmin || user.email === "admin@discography.ai");
 
     return (
         <AuthContext.Provider value={{ user, isAdmin, loading, logout }}>

@@ -68,9 +68,16 @@ export default function EditorialManager() {
     }, [user]); // Re-run when user changes
 
     const handleSave = async (e: React.FormEvent) => {
-        // ... (existing code remains same)
         e.preventDefault();
-        console.log("Attempting to save. Current User:", user?.uid || "Not Authenticated");
+
+        // Critical Guard: Ensure we have a real Firebase session
+        if (!user) {
+            console.error("Save aborted: No authenticated user session found.");
+            alert("Protocol Violation: Your session has expired. Please log out and back in to authenticate your access.");
+            return;
+        }
+
+        console.log("Attempting to save. Current User UID:", user.uid);
 
         try {
             if (currentArticle?.id) {
@@ -89,8 +96,12 @@ export default function EditorialManager() {
             setIsEditing(false);
             setCurrentArticle(null);
         } catch (error: any) {
-            console.error("Error saving article:", error);
-            alert(`Error saving: ${error.message || error}`);
+            console.error("Firebase Error saving article:", error);
+            if (error.code === 'permission-denied') {
+                alert("Permission Denied: Your identity could not be verified by the Security Layer. Try refreshing the page or logging in again.");
+            } else {
+                alert(`Error saving: ${error.message || error}`);
+            }
         }
     };
 

@@ -127,7 +127,7 @@ export default function Editorial() {
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
-                        <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-24">
+                        <div className="absolute inset-0 flex flex-col justify-end p-8 md:p-24 pt-24 md:pt-48">
                             <motion.div
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
@@ -137,7 +137,7 @@ export default function Editorial() {
                                 <Badge className="bg-primary text-black font-black uppercase tracking-widest px-4 md:px-6 py-1.5 md:py-2 rounded-full text-[10px] md:text-xs shadow-xl shadow-primary/20 self-start">
                                     {featured.featured ? "Destacado" : "Novedad"}
                                 </Badge>
-                                <h1 className="text-4xl md:text-[7rem] font-display font-black text-white tracking-tightest leading-[1] md:leading-[1.1] uppercase">
+                                <h1 className="text-3xl md:text-[6rem] font-display font-black text-white tracking-tightest leading-[1] md:leading-[1.1] uppercase">
                                     {featured.title}
                                 </h1>
                                 <p className="hidden md:block text-gray-400 text-2xl font-medium leading-relaxed max-w-2xl border-l-4 border-primary pl-8">

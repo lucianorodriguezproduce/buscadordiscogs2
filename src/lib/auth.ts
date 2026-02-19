@@ -1,4 +1,4 @@
-import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { GoogleAuthProvider, signInWithRedirect, getRedirectResult, signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./firebase";
 
@@ -6,15 +6,23 @@ export const googleProvider = new GoogleAuthProvider();
 
 export const signInWithGoogle = async () => {
     try {
-        const result = await signInWithPopup(auth, googleProvider);
-        const user = result.user;
-
-        // Sync user to Firestore
-        await syncUserToFirestore(user);
-
-        return user;
+        await signInWithRedirect(auth, googleProvider);
     } catch (error) {
-        console.error("Error signing in with Google:", error);
+        console.error("Error signing in with Google Redirect:", error);
+        throw error;
+    }
+};
+
+export const handleRedirectResult = async () => {
+    try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+            await syncUserToFirestore(result.user);
+            return result.user;
+        }
+        return null;
+    } catch (error) {
+        console.error("Error handling redirect result:", error);
         throw error;
     }
 };

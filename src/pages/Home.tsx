@@ -5,7 +5,7 @@ import { db, auth } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useDebounce } from "@/hooks/useDebounce";
 import { discogsService, type DiscogsSearchResult } from "@/lib/discogs";
-import { signInWithGoogle, signInWithEmail } from "@/lib/auth";
+import { signInWithGoogle, signInWithEmail, handleRedirectResult } from "@/lib/auth";
 import { onAuthStateChanged, type User } from "firebase/auth";
 
 type Intent = "COMPRAR" | "VENDER";
@@ -19,7 +19,8 @@ export default function Home() {
     const [condition, setCondition] = useState<Condition | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
-    const [step, setStep] = useState(1); 
+    const [step, setStep] = useState(1);
+
 
     const [searchResults, setSearchResults] = useState<DiscogsSearchResult[]>([]);
     const [isLoadingSearch, setIsLoadingSearch] = useState(false);
@@ -27,16 +28,41 @@ export default function Home() {
     const [showDropdown, setShowDropdown] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
-    
+
     // Auth States
     const [user, setUser] = useState<User | null>(null);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    // Auto-scroll on step change
+    useEffect(() => {
+        scrollToTop();
+    }, [step, selectedItem]);
+
     const debouncedQuery = useDebounce(query, 500);
 
-    // Subscribe to Auth changes
+    // Subscribe to Auth changes & Handle Redirect Result
     useEffect(() => {
+        const checkRedirect = async () => {
+            try {
+                const redirectedUser = await handleRedirectResult();
+                if (redirectedUser) {
+                    setUser(redirectedUser);
+                    // If we have a selected item and other details, try to auto-submit?
+                    // For now, just ensure the modal closes if they were in step 2
+                    if (step === 2) setStep(1);
+                }
+            } catch (err) {
+                console.error("Redirect check failed:", err);
+            }
+        };
+
+        checkRedirect();
+
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
         });
@@ -104,10 +130,8 @@ export default function Home() {
     const handleGoogleSignIn = async () => {
         setIsSubmitting(true);
         try {
-            const loggedUser = await signInWithGoogle();
-            if (loggedUser) {
-                await submitOrder(loggedUser.uid);
-            }
+            await signInWithGoogle();
+            // signInWithRedirect does not return anything, the result is handled by handleRedirectResult on page load
         } catch (error) {
             console.error("Login induction error:", error);
             alert("Error al vincular con Google. Intente nuevamente.");
@@ -132,13 +156,16 @@ export default function Home() {
         }
     };
 
-    const submitOrder = async (uid: string) => {
+    const submitOrder = async (uid?: string) => {
         if (!selectedItem || !format || !condition || !intent) return;
 
         setIsSubmitting(true);
         try {
+            const currentUid = uid || auth.currentUser?.uid;
+            if (!currentUid) throw new Error("No authenticated user ID found");
+
             await addDoc(collection(db, "orders"), {
-                user_id: uid,
+                user_id: currentUid,
                 item_id: selectedItem.id,
                 details: {
                     format,
@@ -170,7 +197,7 @@ export default function Home() {
                     <CheckCircle2 className="h-12 w-12 text-black" />
                 </motion.div>
                 <div className="space-y-4">
-                    <h2 className="text-4xl md:text-6xl font-display font-black text-white uppercase tracking-tighter">Protocolo Recibido</h2>
+                    <h2 className="text-4xl md:text-6xl font-display font-black text-white uppercase tracking-tighter">Pedido Vinculado Exitosamente</h2>
                     <p className="text-gray-500 text-lg md:text-xl max-w-md mx-auto font-medium">
                         Tu intención ha sido registrada en el archivo central. <span className="text-primary">Oldie but Goldie</span> procesará tu pedido {user?.email && `vinculado a ${user.email}`}.
                     </p>

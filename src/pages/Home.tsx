@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ChevronRight, CheckCircle2, MessageSquare, Mail, Layers, Disc, Database, Package, RefreshCw, MapPin, Tag, Plus, ArrowRight } from "lucide-react";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useDebounce } from "@/hooks/useDebounce";
 import { discogsService, type DiscogsSearchResult } from "@/lib/discogs";
+import { signInWithGoogle, signInWithEmail } from "@/lib/auth";
+import { onAuthStateChanged, type User } from "firebase/auth";
 
 type Intent = "COMPRAR" | "VENDER";
 type Format = "CD" | "VINILO" | "CASSETTE" | "OTROS";
@@ -15,20 +17,31 @@ export default function Home() {
     const [query, setQuery] = useState("");
     const [format, setFormat] = useState<Format | null>(null);
     const [condition, setCondition] = useState<Condition | null>(null);
-    const [contact, setContact] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
-    const [step, setStep] = useState(1); // Internal logic for lead capture step
+    const [step, setStep] = useState(1); 
 
-    // Real-time Search & Selection States
     const [searchResults, setSearchResults] = useState<DiscogsSearchResult[]>([]);
     const [isLoadingSearch, setIsLoadingSearch] = useState(false);
     const [selectedItem, setSelectedItem] = useState<DiscogsSearchResult | null>(null);
     const [showDropdown, setShowDropdown] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
+    
+    // Auth States
+    const [user, setUser] = useState<User | null>(null);
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
 
     const debouncedQuery = useDebounce(query, 500);
+
+    // Subscribe to Auth changes
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+        });
+        return () => unsubscribe();
+    }, []);
 
     // Effect for real-time Discogs search
     useEffect(() => {
@@ -85,37 +98,62 @@ export default function Home() {
         setSearchResults([]);
         setShowDropdown(false);
         setHasMore(false);
+        setStep(1);
     };
 
-    const isContactValid = contact.trim().length > 5 && (contact.includes("@") || /^\+?[\d\s-]{8,}$/.test(contact));
+    const handleGoogleSignIn = async () => {
+        setIsSubmitting(true);
+        try {
+            const loggedUser = await signInWithGoogle();
+            if (loggedUser) {
+                await submitOrder(loggedUser.uid);
+            }
+        } catch (error) {
+            console.error("Login induction error:", error);
+            alert("Error al vincular con Google. Intente nuevamente.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedItem || !format || !condition || !intent || !isContactValid) return;
+    const handleEmailSignIn = async () => {
+        if (!email || !password) return;
+        setIsSubmitting(true);
+        try {
+            const loggedUser = await signInWithEmail(email, password);
+            if (loggedUser) {
+                await submitOrder(loggedUser.uid);
+            }
+        } catch (error) {
+            console.error("Email login error:", error);
+            alert("Error en credenciales técnicas. Verifique su acceso.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const submitOrder = async (uid: string) => {
+        if (!selectedItem || !format || !condition || !intent) return;
 
         setIsSubmitting(true);
         try {
-            await addDoc(collection(db, "intent_leads"), {
-                intent,
-                query: selectedItem.title,
-                discogsId: selectedItem.id,
-                format,
-                condition,
-                contact,
+            await addDoc(collection(db, "orders"), {
+                user_id: uid,
+                item_id: selectedItem.id,
                 details: {
+                    format,
+                    condition,
+                    intent,
                     artist: selectedItem.title.split(' - ')[0],
                     album: selectedItem.title.split(' - ')[1] || selectedItem.title,
-                    label: selectedItem.label?.[0] || 'N/A',
-                    year: selectedItem.year || 'N/A',
-                    country: selectedItem.country || 'N/A'
                 },
                 timestamp: serverTimestamp(),
                 status: 'pending'
             });
             setIsSuccess(true);
         } catch (error) {
-            console.error("Error saving lead:", error);
-            alert("Error de conexión. Reintente en unos instantes.");
+            console.error("Error saving order:", error);
+            alert("Error al procesar el pedido. Reintente en unos instantes.");
         } finally {
             setIsSubmitting(false);
         }
@@ -123,18 +161,18 @@ export default function Home() {
 
     if (isSuccess) {
         return (
-            <div className="min-h-[70vh] flex flex-col items-center justify-center text-center space-y-8 px-4">
+            <div className="min-h-[70vh] flex flex-col items-center justify-center text-center space-y-8 px-4 font-sans">
                 <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="w-24 h-24 bg-primary rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(223,255,0,0.3)]"
+                    className="w-24 h-24 bg-primary rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(204,255,0,0.3)]"
                 >
                     <CheckCircle2 className="h-12 w-12 text-black" />
                 </motion.div>
                 <div className="space-y-4">
                     <h2 className="text-4xl md:text-6xl font-display font-black text-white uppercase tracking-tighter">Protocolo Recibido</h2>
                     <p className="text-gray-500 text-lg md:text-xl max-w-md mx-auto font-medium">
-                        Tu intención ha sido registrada en el archivo central. <span className="text-primary">Oldie but Goldie</span> se pondrá en contacto pronto vía {contact.includes("@") ? "Email" : "WhatsApp"}.
+                        Tu intención ha sido registrada en el archivo central. <span className="text-primary">Oldie but Goldie</span> procesará tu pedido {user?.email && `vinculado a ${user.email}`}.
                     </p>
                 </div>
                 <button
@@ -148,8 +186,7 @@ export default function Home() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto py-8 md:py-20 flex flex-col items-center justify-center min-h-[80vh] px-4">
-
+        <div className="max-w-4xl mx-auto py-8 md:py-20 flex flex-col items-center justify-center min-h-[80vh] px-4 font-sans">
             <AnimatePresence mode="wait">
                 {!selectedItem ? (
                     <motion.div
@@ -159,7 +196,6 @@ export default function Home() {
                         exit={{ opacity: 0, y: -20 }}
                         className="w-full space-y-12 text-center"
                     >
-                        {/* Header Minimalista para el buscador */}
                         <header className="space-y-4">
                             <div className="flex items-center justify-center gap-3 mb-2">
                                 <div className="h-2 w-2 bg-primary animate-pulse rounded-full" />
@@ -184,7 +220,6 @@ export default function Home() {
                                 className="w-full bg-white/5 border-2 border-white/5 hover:border-white/10 rounded-[1.5rem] md:rounded-[2.5rem] py-8 md:py-10 pl-16 md:pl-20 pr-8 md:pr-10 text-xl md:text-2xl font-bold text-white placeholder:text-gray-700 focus:outline-none focus:border-primary/50 transition-all focus:bg-black/40 shadow-2xl"
                             />
 
-                            {/* Dropdown Results */}
                             <AnimatePresence>
                                 {showDropdown && searchResults.length > 0 && (
                                     <motion.div
@@ -245,13 +280,11 @@ export default function Home() {
                         animate={{ opacity: 1, y: 0 }}
                         className="space-y-12 md:space-y-16 w-full"
                     >
-                        {/* Selector de Header dinámico */}
                         <header className="text-center md:text-left space-y-2">
                             <span className="text-[10px] font-black uppercase tracking-[0.5em] text-primary/60">Fase Operativa</span>
                             <h2 className="text-3xl md:text-5xl font-display font-black text-white uppercase tracking-tighter">Detalle de Obra</h2>
                         </header>
 
-                        {/* Selection Card: Radiohead The Bends Style */}
                         <div className="bg-[#050505] border-2 border-primary rounded-[1.5rem] md:rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(204,255,0,0.12)] group relative w-full transform hover:scale-[1.01] transition-all duration-700">
                             <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-white/10">
                                 <div className="w-full md:w-2/5 aspect-square relative overflow-hidden">
@@ -313,9 +346,7 @@ export default function Home() {
                             </div>
                         </div>
 
-                        {/* ATRIBUTOS: Revelado Progresivo */}
                         <div className="space-y-12 w-full">
-                            {/* Formato */}
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -339,7 +370,6 @@ export default function Home() {
                                 </div>
                             </motion.div>
 
-                            {/* Estado */}
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -368,7 +398,6 @@ export default function Home() {
                             </motion.div>
                         </div>
 
-                        {/* STEP 3: Reveal Action Intent */}
                         <AnimatePresence>
                             {format && condition && (
                                 <motion.div
@@ -424,7 +453,7 @@ export default function Home() {
                 <p className="text-[9px] md:text-[10px] font-black text-white uppercase tracking-[0.8em]">Oldie but Goldie Terminal // Protocolo Seguro 2026</p>
             </footer>
 
-            {/* MODAL: Lead Capture Flow con Estética Industrial */}
+            {/* MODAL: ACCESO RÁPIDO (Auth Step 4) */}
             <AnimatePresence>
                 {step === 2 && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 backdrop-blur-3xl bg-black/80">
@@ -439,24 +468,50 @@ export default function Home() {
                             <div className="space-y-4 text-center">
                                 <div className="flex items-center justify-center gap-4 mb-2">
                                     <MessageSquare className="h-8 w-8 text-primary" />
-                                    <h3 className="text-3xl md:text-5xl font-display font-black text-white uppercase tracking-tighter">Confirmar Enlace</h3>
+                                    <h3 className="text-3xl md:text-5xl font-display font-black text-white uppercase tracking-tighter">Vincular Operación</h3>
                                 </div>
-                                <p className="text-gray-500 font-medium text-sm md:text-base px-4 leading-relaxed">
-                                    Un analista verificará los parámetros técnicos de la obra y se comunicará contigo para finalizar la operación.
+                                <p className="text-gray-500 font-medium text-sm md:text-base px-4 leading-relaxed uppercase tracking-widest text-[10px]">
+                                    Identifícate para persistir tus parámetros en la red
                                 </p>
                             </div>
 
                             <div className="space-y-8">
-                                <div className="relative group">
-                                    <Mail className="absolute left-6 md:left-8 top-1/2 -translate-y-1/2 h-5 md:h-6 w-5 md:w-6 text-gray-500 group-focus-within:text-primary transition-colors" />
-                                    <input
-                                        type="text"
-                                        value={contact}
-                                        onChange={(e) => setContact(e.target.value)}
-                                        placeholder="WhatsApp o Email..."
-                                        className="w-full bg-white/5 border-2 border-white/10 rounded-2xl md:rounded-3xl py-6 md:py-8 pl-16 md:pl-20 pr-8 md:pr-10 text-lg md:text-xl font-bold text-white placeholder:text-gray-800 focus:outline-none focus:border-primary transition-all focus:bg-black shadow-inner"
-                                        required
-                                    />
+                                <button
+                                    onClick={handleGoogleSignIn}
+                                    disabled={isSubmitting}
+                                    className="w-full bg-white text-black py-6 md:py-8 rounded-2xl md:rounded-3xl font-black uppercase tracking-[0.2em] text-xs md:text-sm flex items-center justify-center gap-4 hover:bg-primary transition-all shadow-xl group border-0"
+                                >
+                                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" className="w-6 h-6" />
+                                    Continuar con Google
+                                </button>
+
+                                <div className="relative flex items-center gap-4 py-2">
+                                    <div className="flex-1 h-px bg-white/10" />
+                                    <span className="text-[9px] font-black text-white/20 uppercase tracking-[0.4em]">O usar credenciales</span>
+                                    <div className="flex-1 h-px bg-white/10" />
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="relative group/input">
+                                        <Mail className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 group-focus-within/input:text-primary transition-colors" />
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="Email de enlace..."
+                                            className="w-full bg-white/5 border-2 border-white/5 rounded-2xl py-6 pl-16 pr-8 text-white placeholder:text-gray-800 focus:outline-none focus:border-primary/50 transition-all font-sans"
+                                        />
+                                    </div>
+                                    <div className="relative group/input">
+                                        <Layers className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 group-focus-within/input:text-primary transition-colors" />
+                                        <input
+                                            type="password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            placeholder="Clave técnica..."
+                                            className="w-full bg-white/5 border-2 border-white/5 rounded-2xl py-6 pl-16 pr-8 text-white placeholder:text-gray-800 focus:outline-none focus:border-primary/50 transition-all font-sans"
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="flex flex-col md:flex-row gap-4">
@@ -465,17 +520,21 @@ export default function Home() {
                                         onClick={() => setStep(1)}
                                         className="px-8 py-6 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] text-gray-600 hover:text-white transition-all order-2 md:order-1"
                                     >
-                                        Revisar Archivo
+                                        ATRÁS
                                     </button>
                                     <button
-                                        onClick={handleSubmit}
-                                        disabled={!isContactValid || isSubmitting}
-                                        className="flex-1 bg-primary text-black py-6 md:py-8 rounded-2xl font-black uppercase tracking-[0.3em] text-[10px] md:text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-[0_20px_40px_rgba(204,255,0,0.2)] disabled:opacity-50 order-1 md:order-2"
+                                        onClick={() => user ? submitOrder(user.uid) : handleEmailSignIn()}
+                                        disabled={isSubmitting}
+                                        className="flex-1 bg-white/5 border-2 border-white/10 text-white py-6 md:py-8 rounded-2xl font-black uppercase tracking-[0.3em] text-[10px] md:text-xs hover:bg-black transition-all order-1 md:order-2 disabled:opacity-30"
                                     >
-                                        {isSubmitting ? "Sincronizando..." : "Finalizar Protocolo"}
+                                        {user ? "CONFIRMAR PEDIDO" : "INICIAR SESIÓN"}
                                     </button>
                                 </div>
                             </div>
+
+                            <p className="text-center text-[9px] font-black text-gray-600 uppercase tracking-widest">
+                                ¿Ya tienes cuenta? <span className="text-primary cursor-pointer">Inicia sesión</span>
+                            </p>
                         </motion.div>
                     </div>
                 )}

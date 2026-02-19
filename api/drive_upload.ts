@@ -103,7 +103,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             requestBody: { role: 'reader', type: 'anyone' },
         });
 
-        const directLink = `https://drive.google.com/uc?export=view&id=${fileId}`;
+        const directLink = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1920`;
         console.log('[DriveSync] Final public link:', directLink);
 
         return res.status(200).json({

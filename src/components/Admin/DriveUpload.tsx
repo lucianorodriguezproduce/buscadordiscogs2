@@ -108,8 +108,8 @@ export const DriveUpload = ({ onUploadSuccess }: DriveUploadProps) => {
                                 <h4 className="text-xl font-display font-black text-white tracking-tightest uppercase mb-2">
                                     Carga tu <span className="text-[#CCFF00]">Imagen Editorial</span>
                                 </h4>
-                                <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">
-                                    Drag & Drop o click para seleccionar 1920x1080
+                                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mt-4 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full inline-block">
+                                    Format: 1920x1080px (Aesthetic Perfect)
                                 </p>
                             </div>
                             <input

@@ -276,3 +276,4 @@ export default function Editorial() {
         </div>
     );
 }
+// Deployment trigger: Final hero layout verification v1.1

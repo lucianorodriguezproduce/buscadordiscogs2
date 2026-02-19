@@ -2,13 +2,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 
-// NOTE: These should ideally be in Environment Variables in Vercel.
-// For the purpose of this implementation using Stitch, we'll assume they are provided or mocked.
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
 const GOOGLE_REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
-const DRIVE_FOLDER_ID = process.env.DRIVE_FOLDER_ID; // The specific folder to upload to
+const DRIVE_FOLDER_ID = process.env.DRIVE_FOLDER_ID;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'OPTIONS') {
@@ -20,6 +18,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // Diagnostic logging (non-sensitive)
+    console.log('[DriveSync] Received upload request');
+    console.log('[DriveSync] Env Check:', {
+        hasClientId: !!GOOGLE_CLIENT_ID,
+        clientIdStart: GOOGLE_CLIENT_ID?.substring(0, 10) + '...',
+        hasClientSecret: !!GOOGLE_CLIENT_SECRET,
+        hasRefreshToken: !!GOOGLE_REFRESH_TOKEN,
+        refreshTokenStart: GOOGLE_REFRESH_TOKEN?.substring(0, 5) + '...',
+        hasFolderId: !!DRIVE_FOLDER_ID
+    });
+
     // Verify environment variables
     const missingVars = [];
     if (!GOOGLE_CLIENT_ID) missingVars.push('GOOGLE_CLIENT_ID');
@@ -30,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.error('CRITICAL: Missing environment variables:', missingVars);
         return res.status(500).json({
             error: 'Configuration Error',
-            details: `Missing environment variables: ${missingVars.join(', ')}. Please configure them in Vercel or your .env file.`
+            details: `Missing environment variables: ${missingVars.join(', ')}. Please configure them in Vercel.`
         });
     }
 
@@ -43,7 +52,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         console.log(`[DriveSync] Processing upload: ${fileName} (${fileType})`);
-        console.log(`[DriveSync] Folder ID: ${DRIVE_FOLDER_ID || 'Root'}`);
 
         const auth = new google.auth.OAuth2(
             GOOGLE_CLIENT_ID,
@@ -52,7 +60,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         );
 
         auth.setCredentials({ refresh_token: GOOGLE_REFRESH_TOKEN });
-
         const drive = google.drive({ version: 'v3', auth });
 
         // Convert base64 to stream
@@ -68,7 +75,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         stream.push(buffer);
         stream.push(null);
 
-        // 1. Upload the file
         const fileMetadata = {
             name: fileName || `upload_${Date.now()}`,
             parents: DRIVE_FOLDER_ID ? [DRIVE_FOLDER_ID] : [],
@@ -89,21 +95,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const fileId = uploadResponse.data.id;
         console.log('[DriveSync] Upload success. ID:', fileId);
 
-        if (!fileId) {
-            throw new Error('Failed to get file ID after upload');
-        }
+        if (!fileId) throw new Error('Failed to get file ID after upload');
 
-        // 2. Change permissions to 'anyone with the link' (public)
         console.log('[DriveSync] Setting file permissions to public...');
         await drive.permissions.create({
             fileId: fileId,
-            requestBody: {
-                role: 'reader',
-                type: 'anyone',
-            },
+            requestBody: { role: 'reader', type: 'anyone' },
         });
 
-        // 3. Convert webViewLink to Direct Download Link
         const directLink = `https://drive.google.com/uc?export=view&id=${fileId}`;
         console.log('[DriveSync] Final public link:', directLink);
 
@@ -120,17 +119,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             data: error.response?.data
         });
 
-        // Try to extract a friendly message
-        let friendlyMessage = error.message;
-        if (error.response?.data?.error_description) {
-            friendlyMessage = error.response.data.error_description;
-        } else if (error.errors?.[0]?.message) {
-            friendlyMessage = error.errors[0].message;
+        let googleError = error.message;
+        if (error.response?.data?.error) {
+            const gErr = error.response.data.error;
+            googleError = `${gErr.message || error.message} (${gErr.code || error.code})`;
+            if (gErr.errors && gErr.errors.length > 0) {
+                googleError += `: ${gErr.errors[0].reason} - ${gErr.errors[0].message}`;
+            }
+        } else if (error.response?.data?.error_description) {
+            googleError = error.response.data.error_description;
         }
 
         return res.status(500).json({
             error: 'Failed to upload to Google Drive',
-            details: friendlyMessage,
+            details: googleError,
             fullError: error.response?.data || error.message
         });
     }

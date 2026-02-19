@@ -13,8 +13,6 @@ export const DriveUpload = ({ onUploadSuccess }: DriveUploadProps) => {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
     const handleUpload = async (file: File) => {
-        // Validate 1920x1080px (Optional but recommended)
-        // For now, let's just ensure it's an image
         if (!file.type.startsWith('image/')) {
             setUploadStatus('error');
             setErrorMessage("Por favor, selecciona una imagen.");
@@ -25,34 +23,39 @@ export const DriveUpload = ({ onUploadSuccess }: DriveUploadProps) => {
         setPreviewUrl(URL.createObjectURL(file));
 
         try {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = async () => {
-                const base64Content = (reader.result as string).split(',')[1];
+            const base64Content = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => {
+                    const base64 = (reader.result as string).split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = () => reject(new Error("Error leyendo el archivo"));
+            });
 
-                const response = await fetch('/api/drive_upload', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        file: base64Content,
-                        fileName: file.name,
-                        fileType: file.type
-                    })
-                });
+            const response = await fetch('/api/drive_upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    file: base64Content,
+                    fileName: file.name,
+                    fileType: file.type
+                })
+            });
 
-                const data = await response.json();
+            const data = await response.json();
 
-                if (data.success) {
-                    setUploadStatus('success');
-                    onUploadSuccess(data.directLink);
-                } else {
-                    const errorDetail = data.details || data.error || "Fallo en la carga";
-                    throw new Error(errorDetail);
-                }
-            };
+            if (data.success) {
+                setUploadStatus('success');
+                onUploadSuccess(data.directLink);
+            } else {
+                const errorDetail = data.details || data.error || "Fallo en la carga";
+                throw new Error(errorDetail);
+            }
         } catch (error: any) {
+            console.error("Upload process failed:", error);
+            setErrorMessage(error.message || "Error en la subida");
             setUploadStatus('error');
-            setErrorMessage(error.message);
         }
     };
 

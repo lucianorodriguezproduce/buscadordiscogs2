@@ -134,9 +134,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             googleError = error.response.data.error_description;
         }
 
+        const redactedCheck = {
+            clientId: GOOGLE_CLIENT_ID ? `${GOOGLE_CLIENT_ID.substring(0, 10)}...${GOOGLE_CLIENT_ID.slice(-5)}` : 'MISSING',
+            clientSecret: GOOGLE_CLIENT_SECRET ? `${GOOGLE_CLIENT_SECRET.substring(0, 5)}...` : 'MISSING',
+            refreshToken: GOOGLE_REFRESH_TOKEN ? `${GOOGLE_REFRESH_TOKEN.substring(0, 10)}...${GOOGLE_REFRESH_TOKEN.slice(-5)}` : 'MISSING',
+            redirectUri: GOOGLE_REDIRECT_URI,
+            folderId: DRIVE_FOLDER_ID
+        };
+
         return res.status(500).json({
             error: 'Failed to upload to Google Drive',
             details: googleError,
+            meta: redactedCheck,
             fullError: error.response?.data || error.message
         });
     }

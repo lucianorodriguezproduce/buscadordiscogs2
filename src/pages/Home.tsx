@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ChevronRight, CheckCircle2, MessageSquare, Mail, Layers, Disc, Database, Package } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useDebounce } from "@/hooks/useDebounce";
+import { discogsService, type DiscogsSearchResult } from "@/lib/discogs";
 
 type Intent = "COMPRAR" | "VENDER";
 type Format = "CD" | "VINILO" | "CASSETTE" | "OTROS";
@@ -18,6 +20,43 @@ export default function Home() {
     const [isSuccess, setIsSuccess] = useState(false);
     const [step, setStep] = useState(1);
 
+    // Real-time Search States
+    const [searchResults, setSearchResults] = useState<DiscogsSearchResult[]>([]);
+    const [isLoadingSearch, setIsLoadingSearch] = useState(false);
+    const [selectedDiscogsId, setSelectedDiscogsId] = useState<number | null>(null);
+    const [showDropdown, setShowDropdown] = useState(false);
+
+    const debouncedQuery = useDebounce(query, 500);
+
+    // Effect for real-time Discogs search
+    useEffect(() => {
+        const performSearch = async () => {
+            if (debouncedQuery.trim().length >= 3) {
+                setIsLoadingSearch(true);
+                try {
+                    const results = await discogsService.searchReleases(debouncedQuery);
+                    setSearchResults(results.slice(0, 5)); // Limit to top 5 as requested
+                    setShowDropdown(true);
+                } catch (error) {
+                    console.error("Search error:", error);
+                } finally {
+                    setIsLoadingSearch(false);
+                }
+            } else {
+                setSearchResults([]);
+                setShowDropdown(false);
+            }
+        };
+
+        performSearch();
+    }, [debouncedQuery]);
+
+    const handleSelectResult = (result: DiscogsSearchResult) => {
+        setQuery(result.title);
+        setSelectedDiscogsId(result.id);
+        setShowDropdown(false);
+    };
+
     const isStep1Valid = intent && query.trim().length > 2 && format && condition;
     const isContactValid = contact.trim().length > 5 && (contact.includes("@") || /^\+?[\d\s-]{8,}$/.test(contact));
 
@@ -30,6 +69,7 @@ export default function Home() {
             await addDoc(collection(db, "intent_leads"), {
                 intent,
                 query,
+                discogsId: selectedDiscogsId,
                 format,
                 condition,
                 contact,
@@ -124,6 +164,46 @@ export default function Home() {
                             placeholder="Artista, Álbum o Referencia..."
                             className="w-full bg-white/5 border-2 border-white/5 hover:border-white/10 rounded-[2.5rem] py-10 pl-20 pr-10 text-2xl font-bold text-white placeholder:text-gray-700 focus:outline-none focus:border-primary/50 transition-all focus:bg-black/40"
                         />
+
+                        {/* Dropdown de Resultados */}
+                        <AnimatePresence>
+                            {showDropdown && searchResults.length > 0 && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -10 }}
+                                    className="absolute left-0 right-0 top-full mt-2 bg-[#0A0A0A] border-2 border-white/10 rounded-3xl overflow-hidden z-50 shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
+                                >
+                                    {searchResults.map((result) => (
+                                        <button
+                                            key={result.id}
+                                            type="button"
+                                            onClick={() => handleSelectResult(result)}
+                                            className="w-full p-6 flex items-center gap-6 hover:bg-primary/10 transition-colors border-b border-white/5 last:border-0 text-left group"
+                                        >
+                                            <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5 flex-shrink-0 border border-white/10">
+                                                <img src={result.thumb} alt="" className="w-full h-full object-cover grayscale-[0.5] group-hover:grayscale-0 transition-all" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="text-lg font-bold text-white truncate group-hover:text-primary transition-colors">{result.title}</h4>
+                                                <div className="flex items-center gap-4 mt-1 text-[10px] font-black uppercase tracking-widest text-gray-500">
+                                                    <span>{result.year || "YEAR N/A"}</span>
+                                                    <span className="w-1 h-1 rounded-full bg-white/20" />
+                                                    <span className="text-primary/60">{result.genre?.[0] || result.type}</span>
+                                                </div>
+                                            </div>
+                                            <ChevronRight className="h-5 w-5 text-gray-700 group-hover:text-primary transition-colors" />
+                                        </button>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {isLoadingSearch && (
+                            <div className="absolute right-8 top-1/2 -translate-y-1/2">
+                                <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                            </div>
+                        )}
                     </div>
 
                     {/* Atributos: Formato */}

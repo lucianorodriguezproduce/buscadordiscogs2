@@ -34,26 +34,31 @@ export const handleRedirectResult = async () => {
     }
 };
 
-export const signInWithEmail = async (email: string, pass: string) => {
+/**
+ * Unified Authentication: 
+ * Attempts to register the user. If they already exist, attempts to sign them in.
+ */
+export const authenticateUser = async (email: string, pass: string) => {
     try {
-        const result = await signInWithEmailAndPassword(auth, email, pass);
-        const user = result.user;
-        await syncUserToFirestore(user);
-        return user;
-    } catch (error) {
-        console.error("Error signing in with Email:", error);
-        throw error;
-    }
-};
-
-export const signUpWithEmail = async (email: string, pass: string) => {
-    try {
+        // Attempt registration first
         const result = await createUserWithEmailAndPassword(auth, email, pass);
         const user = result.user;
         await syncUserToFirestore(user);
         return user;
-    } catch (error) {
-        console.error("Error signing up with Email:", error);
+    } catch (error: any) {
+        // If email already in use, attempt sign in
+        if (error.code === 'auth/email-already-in-use') {
+            try {
+                const result = await signInWithEmailAndPassword(auth, email, pass);
+                const user = result.user;
+                await syncUserToFirestore(user);
+                return user;
+            } catch (signInError) {
+                console.error("Sign in fallback failed:", signInError);
+                throw signInError;
+            }
+        }
+        console.error("Authentication failed:", error);
         throw error;
     }
 };

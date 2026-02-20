@@ -1,7 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize the Gemini AI client
-const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || "");
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!apiKey) {
+    console.error("ERROR: Variable VITE_GEMINI_API_KEY no detectada");
+}
+
+// Initialize the Gemini AI client using the API key or an empty string to avoid immediate crashes
+const genAI = new GoogleGenerativeAI(apiKey || "");
 
 const SYSTEM_INSTRUCTION = `Eres el experto en eventos musicales de Oldie but Goldie. Tu tono es frío, conocedor y tenaz. Solo proporcionas información sobre conciertos, festivales, ciclos de vinilos y eventos relacionados con la música en Argentina. No utilices emojis alegres ni un tono excesivamente entusiasta; eres un profesional serio y curtido de la industria.
 
@@ -12,14 +18,8 @@ REGLAS ESTRICTAS:
 4. Mantén tus respuestas concisas y evita saludos genéricos como "¡Hola! ¿En qué te ayudo hoy?". Ve directo al punto.
 5. Utiliza formato Markdown de manera sobria (negritas para nombres de bandas o lugares, listas para eventos múltiples).`;
 
-// Use standard model, we will inject standard system instructions via standard model setup if supported, or via first message if necessary
-// The Google Generative AI SDK (v0.1.X+) supports inline system instructions
 export const getEventosChatSession = () => {
     try {
-        if (!import.meta.env.VITE_GEMINI_API_KEY) {
-            console.warn("VITE_GEMINI_API_KEY is not defined. The chat will not function.");
-        }
-
         const model = genAI.getGenerativeModel({
             model: "gemini-1.5-flash",
             systemInstruction: SYSTEM_INSTRUCTION,

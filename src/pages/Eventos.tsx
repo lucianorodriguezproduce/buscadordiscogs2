@@ -79,7 +79,7 @@ export default function Eventos() {
             const errorMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'model',
-                text: 'Radar interferido. Hubo un error al procesar tu solicitud. Inténtalo de nuevo.'
+                text: 'El radar está experimentando interferencias. Reintentando conexión...'
             };
             setMessages(prev => [...prev, errorMsg]);
         } finally {
@@ -155,8 +155,8 @@ export default function Eventos() {
                             >
                                 <div
                                     className={`max-w-[85%] md:max-w-[75%] rounded-[2rem] px-5 py-4 ${msg.role === 'user'
-                                            ? 'bg-primary text-black rounded-br-sm'
-                                            : 'bg-[#111111] border border-white/5 text-gray-300 rounded-bl-sm shadow-[0_4px_30px_rgba(0,0,0,0.5)]'
+                                        ? 'bg-primary text-black rounded-br-sm'
+                                        : 'bg-[#111111] border border-white/5 text-gray-300 rounded-bl-sm shadow-[0_4px_30px_rgba(0,0,0,0.5)]'
                                         }`}
                                 >
                                     <p className={`text-sm md:text-base leading-relaxed ${msg.role === 'user' ? 'font-medium' : 'font-mono'}`}>

@@ -12,11 +12,9 @@ import ArticleDetail from "@/pages/ArticleDetail";
 import Eventos from "@/pages/Eventos";
 import Profile from "@/pages/Profile";
 import AdminLayout from "@/components/Admin/AdminLayout";
-import SyncDashboard from "@/pages/Admin/SyncDashboard";
 import AnalyticsDashboard from "@/pages/Admin/AnalyticsDashboard";
-import TelemetryLogs from "@/components/Admin/TelemetryLogs";
-import SecuritySettings from "@/pages/Admin/SecuritySettings";
 import EditorialManager from "@/pages/Admin/EditorialManager";
+import CommunityManager from "@/pages/Admin/CommunityManager";
 import AdminOrders from "@/pages/AdminOrders";
 import { ProtectedRoute } from "@/components/Guard/ProtectedRoute";
 
@@ -52,11 +50,9 @@ function AppContent() {
         {/* Nested Admin Routes */}
         <Route element={<ProtectedRoute adminOnly={true} />}>
           <Route path="/admin" element={<AdminLayout><Outlet /></AdminLayout>}>
-            <Route index element={<SyncDashboard />} />
-            <Route path="sync" element={<SyncDashboard />} />
+            <Route index element={<AnalyticsDashboard />} />
             <Route path="analytics" element={<AnalyticsDashboard />} />
-            <Route path="logs" element={<TelemetryLogs />} />
-            <Route path="security" element={<SecuritySettings />} />
+            <Route path="community" element={<CommunityManager />} />
             <Route path="editorial" element={<EditorialManager />} />
             <Route path="orders" element={<AdminOrders />} />
           </Route>

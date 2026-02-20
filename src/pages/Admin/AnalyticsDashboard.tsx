@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, orderBy, limit, getDocs, Timestamp } from "firebase/firestore";
+import { collection, query, orderBy, limit, getDocs, Timestamp, where } from "firebase/firestore";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Activity, Globe, Search } from "lucide-react";
+import { MapPin, Activity, Globe, Search, ShoppingBag, PieChart } from "lucide-react";
 
 interface InteractionEvent {
     id: string;
@@ -24,7 +24,10 @@ export default function AnalyticsDashboard() {
         totalViews: 0,
         topCountries: {} as Record<string, number>,
         topCities: {} as Record<string, number>,
-        recentSearches: [] as string[]
+        recentSearches: [] as string[],
+        activeOrdersCount: 0,
+        buyIntent: 0,
+        sellIntent: 0
     });
     const [loading, setLoading] = useState(true);
 
@@ -68,11 +71,29 @@ export default function AnalyticsDashboard() {
                     }
                 });
 
+                // Fetch Active Orders
+                const ordersQuery = query(
+                    collection(db, "orders"),
+                    where("status", "in", ["pending", "quoted", "negotiating"])
+                );
+                const ordersSnap = await getDocs(ordersQuery);
+                const activeOrders = ordersSnap.docs.map(d => d.data());
+
+                let buyIntentCount = 0;
+                let sellIntentCount = 0;
+                activeOrders.forEach(o => {
+                    if (o.details?.intent === "COMPRAR") buyIntentCount++;
+                    if (o.details?.intent === "VENDER") sellIntentCount++;
+                });
+
                 setStats({
                     totalViews: views,
                     topCountries: countries,
                     topCities: cities,
-                    recentSearches: [...new Set(searches)].slice(0, 10) // Unique, top 10
+                    recentSearches: [...new Set(searches)].slice(0, 10), // Unique, top 10
+                    activeOrdersCount: activeOrders.length,
+                    buyIntent: buyIntentCount,
+                    sellIntent: sellIntentCount
                 });
 
             } catch (error) {
@@ -104,21 +125,30 @@ export default function AnalyticsDashboard() {
                 <p className="text-gray-500 mt-4 text-lg font-medium">Real-time telemetry and user interaction signals.</p>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card className="bg-white/[0.03] border-white/5 p-8 rounded-[2.5rem] relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 blur-[60px] rounded-full" />
                     <div className="flex items-center gap-4 mb-4">
-                        <Activity className="h-6 w-6 text-primary" />
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Live Interactions</h3>
+                        <ShoppingBag className="h-6 w-6 text-primary" />
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Active Orders</h3>
+                    </div>
+                    <p className="text-5xl font-black text-white">{stats.activeOrdersCount}</p>
+                    <p className="text-xs text-gray-600 mt-2 font-bold uppercase tracking-widest">In Pipeline</p>
+                </Card>
+
+                <Card className="bg-white/[0.03] border-white/5 p-8 rounded-[2.5rem]">
+                    <div className="flex items-center gap-4 mb-4">
+                        <Activity className="h-6 w-6 text-purple-400" />
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Telemetry</h3>
                     </div>
                     <p className="text-5xl font-black text-white">{events.length}</p>
-                    <p className="text-xs text-gray-600 mt-2 font-bold uppercase tracking-widest">Last 100 events</p>
+                    <p className="text-xs text-gray-600 mt-2 font-bold uppercase tracking-widest">Live Signals</p>
                 </Card>
 
                 <Card className="bg-white/[0.03] border-white/5 p-8 rounded-[2.5rem]">
                     <div className="flex items-center gap-4 mb-4">
                         <Globe className="h-6 w-6 text-blue-400" />
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Active Regions</h3>
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Regions</h3>
                     </div>
                     <p className="text-5xl font-black text-white">{Object.keys(stats.topCountries).length}</p>
                     <p className="text-xs text-gray-600 mt-2 font-bold uppercase tracking-widest">Unique Countries</p>
@@ -137,7 +167,33 @@ export default function AnalyticsDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 <div className="space-y-8">
                     <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-                        <MapPin className="h-6 w-6 text-primary" /> Top Locations
+                        <PieChart className="h-6 w-6 text-primary" /> Operational Intent (Active)
+                    </h3>
+                    <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-8 space-y-6">
+                        {stats.activeOrdersCount > 0 ? (
+                            <>
+                                <div className="flex items-center justify-between text-sm font-bold uppercase tracking-wider">
+                                    <span className="text-green-400">Buying: {stats.buyIntent}</span>
+                                    <span className="text-orange-400">Selling: {stats.sellIntent}</span>
+                                </div>
+                                <div className="h-8 w-full bg-white/5 rounded-full overflow-hidden flex">
+                                    <div
+                                        className="h-full bg-green-500 transition-all duration-1000"
+                                        style={{ width: `${(stats.buyIntent / stats.activeOrdersCount) * 100}%` }}
+                                    />
+                                    <div
+                                        className="h-full bg-orange-500 transition-all duration-1000"
+                                        style={{ width: `${(stats.sellIntent / stats.activeOrdersCount) * 100}%` }}
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            <p className="text-gray-600 text-center py-4">No active orders to analyze.</p>
+                        )}
+                    </div>
+
+                    <h3 className="text-2xl font-bold text-white flex items-center gap-3 mt-8">
+                        <MapPin className="h-6 w-6 text-blue-400" /> Top Locations
                     </h3>
                     <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-8 space-y-6">
                         {getTop(stats.topCountries).map(([country, count], i) => (
@@ -157,14 +213,31 @@ export default function AnalyticsDashboard() {
 
                 <div className="space-y-8">
                     <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-                        <Activity className="h-6 w-6 text-primary" /> Recent Feed
+                        <Search className="h-6 w-6 text-green-400" /> Search Trends
+                    </h3>
+                    <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-8 space-y-4">
+                        {stats.recentSearches.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                                {stats.recentSearches.map((query, i) => (
+                                    <Badge key={i} className="bg-green-500/10 text-green-400 border-green-500/20 px-3 py-1.5 text-xs">
+                                        {query}
+                                    </Badge>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-gray-600 text-center py-4">No recent searches.</p>
+                        )}
+                    </div>
+
+                    <h3 className="text-2xl font-bold text-white flex items-center gap-3">
+                        <Activity className="h-6 w-6 text-purple-400" /> Recent Feed
                     </h3>
                     <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-8 space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar">
                         {events.map((event) => (
                             <div key={event.id} className="flex items-start gap-4 p-4 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
                                 <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${event.action === 'search' ? 'bg-blue-500' :
-                                        event.action === 'view_release' ? 'bg-primary' :
-                                            'bg-gray-500'
+                                    event.action === 'view_release' ? 'bg-primary' :
+                                        'bg-gray-500'
                                     }`} />
                                 <div>
                                     <p className="text-sm font-bold text-white uppercase tracking-wider mb-1">{event.action.replace('_', ' ')}</p>

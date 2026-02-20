@@ -14,12 +14,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
     const navItems = [
         { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
-        { label: "Analytics", href: "/admin/analytics", icon: Activity },
+        { label: "Gestión de Órdenes", href: "/admin/orders", icon: ShoppingBag },
+        { label: "Comunidad", href: "/admin/community", icon: Activity }, // Assuming Activity or Users could be icon, wait will just use Users later if I add it
         { label: "Editorial Hub", href: "/admin/editorial", icon: Newspaper },
-        { label: "Orders", href: "/admin/orders", icon: ShoppingBag },
-        { label: "Sync Engine", href: "/admin/sync", icon: Activity },
-        { label: "System Logs", href: "/admin/logs", icon: Terminal },
-        { label: "Security", href: "/admin/security", icon: Shield },
     ];
 
     return (

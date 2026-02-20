@@ -28,7 +28,8 @@ import {
     Send,
     BadgeDollarSign,
     Hash,
-    ChevronRight
+    ChevronRight,
+    Disc
 } from "lucide-react";
 import OrderDetailsDrawer from "@/components/OrderDetailsDrawer";
 
@@ -330,11 +331,60 @@ export default function AdminOrders() {
                                         {order.details.intent}
                                     </span>
 
-                                    {/* Status */}
-                                    <span className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border flex-shrink-0 ${statusConfig.bg} ${statusConfig.color}`}>
-                                        <StatusIcon className="h-3 w-3 inline mr-1" />
-                                        <span className="hidden md:inline">{statusConfig.label}</span>
-                                    </span>
+                                    {/* Discogs Quick Link */}
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            window.open(`https://www.discogs.com/search?q=${encodeURIComponent(`${order.details.artist} ${order.details.album}`)}`, "_blank");
+                                        }}
+                                        className="hidden md:flex flex-shrink-0 items-center justify-center w-7 h-7 rounded-md bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 hover:bg-yellow-500 hover:text-black transition-colors"
+                                        title="Buscar en Discogs"
+                                    >
+                                        <Disc className="h-3.5 w-3.5" />
+                                    </button>
+
+                                    {/* Inline Status Check */}
+                                    <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                            onClick={() => setActiveDropdown(activeDropdown === order.id ? null : order.id)}
+                                            disabled={updatingId === order.id}
+                                            className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border flex items-center gap-1 transition-all ${statusConfig.bg} ${statusConfig.color} ${updatingId === order.id ? "opacity-50" : "hover:brightness-110"}`}
+                                        >
+                                            <StatusIcon className="h-3 w-3" />
+                                            <span className="hidden md:inline">{statusConfig.label}</span>
+                                            <ChevronDown className="h-3 w-3 ml-0.5" />
+                                        </button>
+
+                                        <AnimatePresence>
+                                            {activeDropdown === order.id && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 5 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: 5 }}
+                                                    className="absolute top-full right-0 mt-2 w-48 bg-neutral-900 border border-white/10 rounded-xl overflow-hidden z-50 shadow-2xl"
+                                                >
+                                                    {STATUS_OPTIONS.map(option => {
+                                                        const OptionIcon = option.icon;
+                                                        return (
+                                                            <button
+                                                                key={option.value}
+                                                                onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, option.value); setActiveDropdown(null); }}
+                                                                className={`w-full flex items-center gap-3 px-4 py-2.5 transition-all text-left ${order.status === option.value ? "bg-white/5" : "hover:bg-white/5"}`}
+                                                            >
+                                                                <OptionIcon className={`h-3.5 w-3.5 ${option.color}`} />
+                                                                <span className={`text-[9px] font-black uppercase tracking-widest ${order.status === option.value ? option.color : "text-gray-400"}`}>
+                                                                    {option.label}
+                                                                </span>
+                                                                {order.status === option.value && (
+                                                                    <CheckCircle2 className="h-3 w-3 text-primary ml-auto" />
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
 
                                     {/* Arrow */}
                                     <ChevronRight className="h-4 w-4 text-gray-700 group-hover:text-primary transition-colors flex-shrink-0" />

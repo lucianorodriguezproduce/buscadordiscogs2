@@ -29,6 +29,7 @@ import { AlbumCardSkeleton } from "@/components/ui/Skeleton";
 import { Link, useSearchParams } from "react-router-dom";
 import OrderDetailsDrawer from "@/components/OrderDetailsDrawer";
 import { generateWhatsAppLink } from "@/utils/whatsapp";
+import { pushWhatsAppContactFromOrder } from "@/utils/analytics";
 
 interface ProfileItem {
     id: string;
@@ -426,7 +427,10 @@ export default function Profile() {
                                                             </p>
                                                         </div>
                                                         <button
-                                                            onClick={() => window.open(generateWhatsAppLink(order), "_blank")}
+                                                            onClick={() => {
+                                                                pushWhatsAppContactFromOrder(order);
+                                                                window.open(generateWhatsAppLink(order), "_blank");
+                                                            }}
                                                             className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20"
                                                         >
                                                             <MessageCircle className="h-4 w-4" />
@@ -521,7 +525,10 @@ export default function Profile() {
                                 </div>
                             )}
                             <button
-                                onClick={() => window.open(generateWhatsAppLink(selectedOrder), "_blank")}
+                                onClick={() => {
+                                    pushWhatsAppContactFromOrder(selectedOrder);
+                                    window.open(generateWhatsAppLink(selectedOrder), "_blank");
+                                }}
                                 className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20"
                             >
                                 <MessageCircle className="h-4 w-4" />

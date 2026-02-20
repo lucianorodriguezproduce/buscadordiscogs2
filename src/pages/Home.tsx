@@ -9,6 +9,7 @@ import { discogsService, type DiscogsSearchResult } from "@/lib/discogs";
 import { authenticateUser, signInWithGoogle } from "@/lib/auth";
 import { useAuth } from "@/context/AuthContext";
 import { generateWhatsAppLink } from "@/utils/whatsapp";
+import { pushViewItem, pushViewItemFromOrder, pushWhatsAppContactFromOrder } from "@/utils/analytics";
 import { SEO } from "@/components/SEO";
 
 type Intent = "COMPRAR" | "VENDER";
@@ -62,6 +63,15 @@ export default function Home() {
     useEffect(() => {
         scrollToTop();
     }, [step, selectedItem]);
+
+    // Analytics tracking for Item Views
+    useEffect(() => {
+        if (publicOrder) {
+            pushViewItemFromOrder(publicOrder);
+        } else if (selectedItem) {
+            pushViewItem(selectedItem, intent || "OBSERVANDO");
+        }
+    }, [selectedItem?.id, publicOrder?.order_number]);
 
     // Handle initial route loading if hitting /item/:type/:id directly
     useEffect(() => {
@@ -490,7 +500,10 @@ export default function Home() {
                 <div className="flex flex-col items-center gap-4 w-full max-w-sm mx-auto">
                     {submittedOrder && (
                         <button
-                            onClick={() => window.open(generateWhatsAppLink(submittedOrder), "_blank")}
+                            onClick={() => {
+                                pushWhatsAppContactFromOrder(submittedOrder);
+                                window.open(generateWhatsAppLink(submittedOrder), "_blank");
+                            }}
                             className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-lg shadow-green-500/20"
                         >
                             <MessageCircle className="h-5 w-5" />
@@ -844,7 +857,10 @@ export default function Home() {
                                         <div className="pt-4 space-y-4">
                                             {publicOrder.isOwner && publicOrder.status === 'quoted' ? (
                                                 <button
-                                                    onClick={() => window.open(generateWhatsAppLink(publicOrder), "_blank")}
+                                                    onClick={() => {
+                                                        pushWhatsAppContactFromOrder(publicOrder);
+                                                        window.open(generateWhatsAppLink(publicOrder), "_blank");
+                                                    }}
                                                     className="w-full bg-primary text-black py-6 rounded-xl font-black uppercase text-xs tracking-widest shadow-[0_0_30px_rgba(204,255,0,0.15)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                                                 >
                                                     <MessageCircle className="w-4 h-4" />

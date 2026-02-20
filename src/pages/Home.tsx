@@ -399,26 +399,32 @@ export default function Home() {
                                     key="header-active"
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="text-center md:text-left mb-8 md:mb-12"
+                                    className="text-center md:text-left mb-4 md:mb-6"
                                 >
-                                    <h1 className="text-5xl md:text-7xl font-display font-black text-white italic uppercase tracking-tighter">
+                                    <h1 className="text-5xl md:text-7xl font-display font-black text-white italic uppercase tracking-tighter pt-4 md:pt-0">
                                         RESULTADOS
                                     </h1>
                                 </motion.header>
                             )}
                         </AnimatePresence>
 
-                        <motion.div layout className="relative group w-full mb-8">
+                        <motion.div layout className="relative group w-full mb-4 md:mb-6">
                             <Search className="absolute left-6 md:left-8 top-1/2 -translate-y-1/2 h-5 md:h-6 w-5 md:w-6 text-gray-500 group-focus-within:text-primary transition-colors" />
                             <input
                                 id="searchQuery"
                                 name="searchQuery"
                                 type="text"
                                 onFocus={() => setIsSearchActive(true)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        e.currentTarget.blur();
+                                    }
+                                }}
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                                 placeholder="Artista, Álbum o Referencia..."
-                                className="w-full bg-white/5 border-2 border-white/5 hover:border-white/10 rounded-[1.5rem] md:rounded-[2.5rem] py-8 md:py-10 pl-16 md:pl-20 pr-16 md:pr-20 text-xl md:text-2xl font-bold text-white placeholder:text-gray-700/50 focus:outline-none focus:border-primary/50 transition-all focus:bg-black/40 shadow-2xl"
+                                className="w-full bg-white/5 border-2 border-white/5 hover:border-white/10 rounded-[1.5rem] md:rounded-[2.5rem] py-6 md:py-8 pl-14 md:pl-20 pr-16 md:pr-20 text-xl md:text-2xl font-bold text-white placeholder:text-gray-700/50 focus:outline-none focus:border-primary/50 transition-all focus:bg-black/40 shadow-2xl"
                             />
                             <AnimatePresence>
                                 {query && (
@@ -446,8 +452,7 @@ export default function Home() {
                                     initial={{ opacity: 0, y: 10, height: 0 }}
                                     animate={{ opacity: 1, y: 0, height: "auto" }}
                                     exit={{ opacity: 0, y: -10, height: 0 }}
-                                    // Modified: Increased padding-bottom (pb-8) and added horizontal padding/negative margins to ensure full visibility while scrolling on mobile
-                                    className="flex items-center justify-start md:justify-center gap-3 overflow-x-auto pb-8 pt-2 px-4 -mx-4 md:px-0 md:mx-0 w-[calc(100%+2rem)] md:w-full hide-scrollbar snap-x"
+                                    className="flex items-center justify-start md:justify-center gap-2 md:gap-3 overflow-x-auto pb-6 pt-0 px-4 -mx-4 md:px-0 md:mx-0 w-[calc(100%+2rem)] md:w-full hide-scrollbar snap-x"
                                 >
                                     {["todo", "artistas", "álbumes"].map((f) => (
                                         <button
@@ -473,7 +478,7 @@ export default function Home() {
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                     // Massive padding bottom ensures the last item is never hidden behind the mobile keyboard
-                                    className="space-y-4 text-left mt-4 pb-64 md:pb-8"
+                                    className="space-y-3 md:space-y-4 text-left mt-2 md:mt-4 pb-[60vh] md:pb-8"
                                 >
                                     {searchResults.map((result, i) => (
                                         <motion.button

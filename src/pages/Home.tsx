@@ -375,7 +375,8 @@ export default function Home() {
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         // Using flex to strictly control vertical gaps dynamically without relying on static margins
-                        className={`w-full flex items-center flex-col text-center ${isSearchActive ? 'gap-0 md:gap-2' : 'gap-12 md:gap-16'}`}
+                        // Reduced top padding/margin for active state to avoid massive empty space
+                        className={`w-full flex items-center flex-col text-center ${isSearchActive ? 'gap-0 md:gap-2 mt-4' : 'gap-12 md:gap-16'}`}
                     >
                         <AnimatePresence mode="wait">
                             {!isSearchActive ? (
@@ -400,9 +401,10 @@ export default function Home() {
                                     key="header-active"
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="text-center md:text-left mb-4 md:mb-6"
+                                    // Header compression: removed massive bottom margin, kept very tight
+                                    className="text-center md:text-left mb-2 md:mb-4"
                                 >
-                                    <h1 className="text-5xl md:text-7xl font-display font-black text-white italic uppercase tracking-tighter pt-4 md:pt-0">
+                                    <h1 className="text-5xl md:text-7xl font-display font-black text-white italic uppercase tracking-tighter pt-2 md:pt-0">
                                         RESULTADOS
                                     </h1>
                                 </motion.header>
@@ -425,7 +427,8 @@ export default function Home() {
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                                 placeholder="Artista, Álbum o Referencia..."
-                                className="w-full bg-white/5 border-2 border-white/5 hover:border-white/10 rounded-[1.5rem] md:rounded-[2.5rem] py-6 md:py-8 pl-14 md:pl-20 pr-16 md:pr-20 text-xl md:text-2xl font-bold text-white placeholder:text-gray-700/50 focus:outline-none focus:border-primary/50 transition-all focus:bg-black/40 shadow-2xl"
+                                // Added strict focus states: transparent ring/outline and force dark background to prevent Safari auto-fill white backgrounds
+                                className="w-full bg-white/5 border-2 border-white/5 hover:border-white/10 rounded-[1.5rem] md:rounded-[2.5rem] py-6 md:py-8 pl-14 md:pl-20 pr-16 md:pr-20 text-xl md:text-2xl font-bold text-white placeholder:text-gray-700/50 focus:outline-none focus:ring-0 focus:border-primary/50 transition-all focus:bg-neutral-900 shadow-2xl"
                             />
                             <AnimatePresence>
                                 {query && (
@@ -453,7 +456,8 @@ export default function Home() {
                                     initial={{ opacity: 0, y: 10, height: 0 }}
                                     animate={{ opacity: 1, y: 0, height: "auto" }}
                                     exit={{ opacity: 0, y: -10, height: 0 }}
-                                    className="flex items-center justify-start md:justify-center gap-2 md:gap-3 overflow-x-auto pb-6 pt-0 px-4 -mx-4 md:px-0 md:mx-0 w-[calc(100%+2rem)] md:w-full hide-scrollbar snap-x"
+                                    // Added mt-4 or mt-5 equivalent (pt-4) to give breathing room from the input, but keeping the gap controlled
+                                    className="flex items-center justify-start md:justify-center gap-2 md:gap-3 overflow-x-auto pb-6 pt-5 px-4 -mx-4 md:px-0 md:mx-0 w-[calc(100%+2rem)] md:w-full hide-scrollbar snap-x"
                                 >
                                     {["todo", "artistas", "álbumes"].map((f) => (
                                         <button

@@ -59,8 +59,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const title = data.title ? `${data.title} | Oldie but Goldie` : defaultTitle;
         const description = defaultDescription; // User requested exact static description for WhatsApp
 
-        // Ensure image is absolute and HTTPS. Discogs sometimes returns HTTP or missing images
-        let image = data.images?.[0]?.uri || data.thumb || defaultImage;
+        // Ensure image is absolute and HTTPS. Discogs sometimes returns HTTP or missing images.
+        // Also fallback to higher resolution image first.
+        let image = data.images?.[0]?.resource_url || data.images?.[0]?.uri || data.thumb || defaultImage;
         if (image.startsWith('http://')) {
             image = image.replace('http://', 'https://');
         }
@@ -83,11 +84,16 @@ function serveFallback(res: VercelResponse, title: string, description: string, 
         <link rel="canonical" href="${url}" />
         
         <meta property="og:type" content="music.album" />
+        <meta property="fb:app_id" content="966242223397117" />
         <meta property="og:url" content="${url}" />
         <meta property="og:title" content="${title}" />
         <meta property="og:description" content="${description}" />
+        
         <meta property="og:image" content="${image}" />
         <meta property="og:image:secure_url" content="${image}" />
+        <meta property="og:image:width" content="600" />
+        <meta property="og:image:height" content="600" />
+        <meta property="og:image:type" content="image/jpeg" />
         
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:url" content="${url}" />

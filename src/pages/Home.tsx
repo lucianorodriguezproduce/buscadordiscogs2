@@ -49,6 +49,7 @@ export default function Home() {
     const [publicOrder, setPublicOrder] = useState<any>(null); // For rendering the Collector Receipt
     const [currentPage, setCurrentPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
+    const [showToast, setShowToast] = useState(false);
 
     // Local Auth UI states (only for the manual form)
     const [email, setEmail] = useState("");
@@ -367,8 +368,16 @@ export default function Home() {
     };
 
     const performSubmission = async (uid: string, intentOverride?: Intent) => {
-        // Obsolete in Home.tsx - logic moved to Lote Context + RevisarLote
-        console.warn("performSubmission called from Home.tsx - this should be dead code in the batch flow");
+        const payload = buildOrderPayload(uid, intentOverride);
+        if (!payload) return;
+
+        try {
+            const docRef = await addDoc(collection(db, 'orders'), payload);
+            setSubmittedOrder({ id: docRef.id, ...payload });
+        } catch (error) {
+            console.error("Error creating order:", error);
+            alert("Error al procesar el pedido.");
+        }
     };
 
     // Fetch market price from Discogs for the selected release
@@ -400,18 +409,13 @@ export default function Home() {
             return;
         }
 
-        // For COMPRAR: Add directly to batch, don't trigger auth here
-        if (selectedItem && format && condition) {
-            toggleItem({
-                id: selectedItem.id,
-                title: selectedItem.title,
-                cover_image: selectedItem.cover_image || selectedItem.thumb || '',
-                format,
-                condition,
-                intent: "COMPRAR"
-            });
-            handleResetSelection(); // Reset visual state so they can keep searching
+        // For COMPRAR: Direct single item checkout
+        if (user) {
+            performSubmission(user.uid, selectedIntent);
+            setIsSuccess(true);
             scrollToTop();
+        } else {
+            setStep(3); // Auth step
         }
     };
 
@@ -422,19 +426,12 @@ export default function Home() {
             return;
         }
 
-        if (selectedItem && format && condition) {
-            toggleItem({
-                id: selectedItem.id,
-                title: selectedItem.title,
-                cover_image: selectedItem.cover_image || selectedItem.thumb || '',
-                format,
-                condition,
-                intent: "VENDER",
-                price: parseFloat(price),
-                currency
-            });
-            handleResetSelection();
+        if (user) {
+            performSubmission(user.uid);
+            setIsSuccess(true);
             scrollToTop();
+        } else {
+            setStep(3); // Auth step
         }
     };
 
@@ -957,22 +954,41 @@ export default function Home() {
                                 </div>
 
                                 {format && condition && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-8 border-t border-white/5">
-                                        <button
-                                            onClick={() => handleIntentSelect("COMPRAR")}
-                                            className={`py-8 rounded-[1.5rem] font-black uppercase tracking-tighter text-2xl md:text-3xl transition-all ${isInLote(selectedItem.id)
-                                                    ? "bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border-2 border-red-500/20"
-                                                    : "bg-white/10 hover:bg-primary hover:text-black border-2 border-transparent"
-                                                }`}
-                                        >
-                                            {isInLote(selectedItem.id) ? "Quitar del Lote (-)" : "Añadir a mi lote (+)"}
-                                        </button>
-                                        <button
-                                            onClick={() => handleIntentSelect("VENDER")}
-                                            className="bg-white/10 hover:bg-primary hover:text-black py-8 rounded-[1.5rem] font-black uppercase tracking-tighter text-2xl md:text-3xl transition-all"
-                                        >
-                                            Vender
-                                        </button>
+                                    <div className="pt-8 border-t border-white/5">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <button
+                                                onClick={() => handleIntentSelect("COMPRAR")}
+                                                className="py-8 rounded-[1.5rem] font-black uppercase tracking-tighter text-2xl md:text-3xl transition-all bg-white/10 hover:bg-primary hover:text-black border-2 border-transparent"
+                                            >
+                                                Quiero Comprar
+                                            </button>
+                                            <button
+                                                onClick={() => handleIntentSelect("VENDER")}
+                                                className="bg-white/10 hover:bg-primary hover:text-black py-8 rounded-[1.5rem] font-black uppercase tracking-tighter text-2xl md:text-3xl transition-all border-2 border-transparent"
+                                            >
+                                                Quiero Vender
+                                            </button>
+                                        </div>
+                                        <div className="pt-6 text-center">
+                                            <button
+                                                onClick={() => {
+                                                    if (selectedItem && format && condition) {
+                                                        toggleItem({
+                                                            id: selectedItem.id,
+                                                            title: selectedItem.title,
+                                                            cover_image: selectedItem.cover_image || selectedItem.thumb || '',
+                                                            format,
+                                                            condition,
+                                                            intent: "COMPRAR"
+                                                        });
+                                                        setShowToast(true);
+                                                    }
+                                                }}
+                                                className="inline-flex items-center justify-center gap-2 text-primary/80 hover:text-primary font-black uppercase tracking-widest text-xs py-3 px-6 rounded-full border border-primary/20 hover:border-primary/50 hover:bg-primary/10 transition-all"
+                                            >
+                                                + Añadir este ítem a un lote
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </motion.div>
@@ -1151,6 +1167,41 @@ export default function Home() {
                                 </div>
                             </div>
                         )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {showToast && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                        className="fixed bottom-24 md:bottom-12 left-1/2 -translate-x-1/2 z-[60] bg-[#111] border border-primary/30 shadow-[0_0_40px_rgba(204,255,0,0.15)] rounded-2xl p-4 md:p-6 w-[90%] max-w-sm"
+                    >
+                        <div className="text-center space-y-4">
+                            <div className="flex items-center justify-center gap-3">
+                                <CheckCircle2 className="text-primary h-6 w-6" />
+                                <span className="text-white font-black uppercase tracking-widest text-sm text-center">Ítem añadido al lote</span>
+                            </div>
+                            <div className="flex flex-col gap-2 pt-2">
+                                <button
+                                    onClick={() => navigate('/revisar-lote')}
+                                    className="w-full bg-primary text-black py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:scale-[1.02] transition-all"
+                                >
+                                    Ir a finalizar lote
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowToast(false);
+                                        handleResetSelection();
+                                        scrollToTop();
+                                    }}
+                                    className="w-full bg-white/5 border border-white/10 text-white py-3 rounded-xl font-black uppercase tracking-widest text-[10px] hover:bg-white/10 transition-all"
+                                >
+                                    Seguir buscando
+                                </button>
+                            </div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

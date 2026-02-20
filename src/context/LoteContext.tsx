@@ -39,17 +39,21 @@ export function LoteProvider({ children }: { children: ReactNode }) {
     const toggleItem = (item: BatchItem) => {
         setLoteItems(prev => {
             const exists = prev.some(i => i.id === item.id);
-            if (exists) {
-                return prev.filter(i => i.id !== item.id);
-            } else {
-                return [...prev, item];
-            }
+            const nextItems = exists
+                ? prev.filter(i => i.id !== item.id)
+                : [...prev, item];
+
+            sessionStorage.setItem("stitch_lote", JSON.stringify(nextItems));
+            return nextItems;
         });
     };
 
     const isInLote = (id: number) => loteItems.some(i => i.id === id);
 
-    const clearLote = () => setLoteItems([]);
+    const clearLote = () => {
+        sessionStorage.removeItem("stitch_lote");
+        setLoteItems([]);
+    };
 
     return (
         <LoteContext.Provider value={{

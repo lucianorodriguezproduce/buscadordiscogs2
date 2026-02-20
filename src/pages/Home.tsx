@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ChevronRight, CheckCircle2, Mail, Layers, DollarSign, TrendingUp } from "lucide-react";
+import { Search, ChevronRight, CheckCircle2, Mail, Layers, DollarSign, TrendingUp, MessageCircle } from "lucide-react";
 import { db, auth } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useDebounce } from "@/hooks/useDebounce";
 import { discogsService, type DiscogsSearchResult } from "@/lib/discogs";
 import { authenticateUser, signInWithGoogle } from "@/lib/auth";
 import { useAuth } from "@/context/AuthContext";
+import { generateWhatsAppLink } from "@/utils/whatsapp";
 
 type Intent = "COMPRAR" | "VENDER";
 type Format = "CD" | "VINILO" | "CASSETTE" | "OTROS";
@@ -23,6 +24,7 @@ export default function Home() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [step, setStep] = useState(1);
+    const [submittedOrder, setSubmittedOrder] = useState<any>(null);
 
     // Sell-specific states
     const [price, setPrice] = useState("");
@@ -162,6 +164,7 @@ export default function Home() {
         const payload = buildOrderPayload(uid, intentOverride);
         if (!payload) return;
         await addDoc(collection(db, "orders"), payload);
+        setSubmittedOrder(payload);
     };
 
     // Fetch market price from Discogs for the selected release
@@ -285,20 +288,32 @@ export default function Home() {
                     <CheckCircle2 className="h-12 w-12 text-black" />
                 </motion.div>
                 <div className="space-y-4">
-                    <h2 className="text-4xl md:text-6xl font-display font-black text-white uppercase tracking-tighter">Pedido Vinculado</h2>
+                    <h2 className="text-4xl md:text-6xl font-display font-black text-white uppercase tracking-tighter">Pedido Registrado</h2>
                     <p className="text-gray-500 text-lg md:text-xl max-w-md mx-auto font-medium">
-                        Tu intención ha sido registrada. <span className="text-primary">Oldie but Goldie</span> procesará tu pedido vinculado a su cuenta.
+                        Tu intención ha sido registrada. Contacta a <span className="text-primary">Oldie but Goldie</span> para procesar tu pedido.
                     </p>
                 </div>
-                <button
-                    onClick={() => {
-                        setIsSuccess(false);
-                        handleResetSelection();
-                    }}
-                    className="bg-white/5 border border-white/10 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-white/10 transition-all"
-                >
-                    Nueva Búsqueda
-                </button>
+                <div className="flex flex-col items-center gap-4 w-full max-w-sm mx-auto">
+                    {submittedOrder && (
+                        <button
+                            onClick={() => window.open(generateWhatsAppLink(submittedOrder), "_blank")}
+                            className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all shadow-lg shadow-green-500/20"
+                        >
+                            <MessageCircle className="h-5 w-5" />
+                            Contactar por WhatsApp
+                        </button>
+                    )}
+                    <button
+                        onClick={() => {
+                            setIsSuccess(false);
+                            setSubmittedOrder(null);
+                            handleResetSelection();
+                        }}
+                        className="w-full bg-white/5 border border-white/10 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-white/10 transition-all"
+                    >
+                        Nueva Búsqueda
+                    </button>
+                </div>
             </div>
         );
     }

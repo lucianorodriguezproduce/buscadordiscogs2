@@ -28,6 +28,7 @@ import { useState, useEffect } from "react";
 import { AlbumCardSkeleton } from "@/components/ui/Skeleton";
 import { Link, useSearchParams } from "react-router-dom";
 import OrderDetailsDrawer from "@/components/OrderDetailsDrawer";
+import { generateWhatsAppLink } from "@/utils/whatsapp";
 
 interface ProfileItem {
     id: string;
@@ -417,15 +418,8 @@ export default function Profile() {
                                                             </p>
                                                         </div>
                                                         <button
-                                                            onClick={() => {
-                                                                const item = `${order.details.artist} - ${order.details.album}`;
-                                                                const currSymbol = order.admin_offer_currency === "USD" ? "US$" : "$";
-                                                                const msg = encodeURIComponent(
-                                                                    `Hola! Vi la cotización de ${currSymbol} ${order.admin_offer_price?.toLocaleString()} para ${item} (${order.order_number || "pedido"}). Me interesa avanzar.`
-                                                                );
-                                                                window.open(`https://wa.me/?text=${msg}`, "_blank");
-                                                            }}
-                                                            className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-400 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-green-500/20"
+                                                            onClick={() => window.open(generateWhatsAppLink(order), "_blank")}
+                                                            className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20"
                                                         >
                                                             <MessageCircle className="h-4 w-4" />
                                                             Contactar por WhatsApp
@@ -504,8 +498,8 @@ export default function Profile() {
                 title={selectedOrder?.order_number || "Detalle de Pedido"}
                 footer={
                     selectedOrder && (
-                        selectedOrder.admin_offer_price ? (
-                            <div className="space-y-4">
+                        <div className="space-y-4">
+                            {selectedOrder.admin_offer_price && (
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
@@ -517,26 +511,15 @@ export default function Profile() {
                                         </p>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        const item = `${selectedOrder.details.artist} - ${selectedOrder.details.album}`;
-                                        const currSymbol = selectedOrder.admin_offer_currency === "USD" ? "US$" : "$";
-                                        const msg = encodeURIComponent(
-                                            `Hola! Vi la cotización de ${currSymbol} ${selectedOrder.admin_offer_price?.toLocaleString()} para ${item} (${selectedOrder.order_number || "pedido"}). Me interesa avanzar.`
-                                        );
-                                        window.open(`https://wa.me/?text=${msg}`, "_blank");
-                                    }}
-                                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-green-400 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-green-500/20"
-                                >
-                                    <MessageCircle className="h-4 w-4" />
-                                    Contactar por WhatsApp
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="text-center py-3">
-                                <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Esperando cotización del administrador</p>
-                            </div>
-                        )
+                            )}
+                            <button
+                                onClick={() => window.open(generateWhatsAppLink(selectedOrder), "_blank")}
+                                className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20"
+                            >
+                                <MessageCircle className="h-4 w-4" />
+                                Contactar por WhatsApp
+                            </button>
+                        </div>
                     )
                 }
             >

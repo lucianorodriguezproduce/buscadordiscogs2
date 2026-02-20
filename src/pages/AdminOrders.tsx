@@ -27,8 +27,10 @@ import {
     TrendingUp,
     Send,
     BadgeDollarSign,
-    Hash
+    Hash,
+    ChevronRight
 } from "lucide-react";
+import OrderDetailsDrawer from "@/components/OrderDetailsDrawer";
 
 interface OrderDoc {
     id: string;
@@ -68,13 +70,16 @@ const STATUS_OPTIONS = [
 export default function AdminOrders() {
     const [orders, setOrders] = useState<OrderDoc[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+    // Drawer state
+    const [selectedOrder, setSelectedOrder] = useState<OrderDoc | null>(null);
+    const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
     const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-    // Quote form state (keyed by order ID)
-    const [quotePrice, setQuotePrice] = useState<Record<string, string>>({});
-    const [quoteCurrency, setQuoteCurrency] = useState<Record<string, string>>({});
+    // Quote form state
+    const [quotePrice, setQuotePrice] = useState("");
+    const [quoteCurrency, setQuoteCurrency] = useState("ARS");
     const [quotingId, setQuotingId] = useState<string | null>(null);
 
     useEffect(() => {
@@ -110,6 +115,10 @@ export default function AdminOrders() {
                     order_id: order.id
                 });
             }
+            // Update selectedOrder if same
+            if (selectedOrder?.id === orderId) {
+                setSelectedOrder(prev => prev ? { ...prev, status: newStatus } : null);
+            }
         } catch (error) {
             console.error("Error updating order status:", error);
         } finally {
@@ -119,8 +128,8 @@ export default function AdminOrders() {
     };
 
     const handleSendQuote = async (order: OrderDoc) => {
-        const priceVal = parseFloat(quotePrice[order.id] || "0");
-        const currencyVal = quoteCurrency[order.id] || "ARS";
+        const priceVal = parseFloat(quotePrice || "0");
+        const currencyVal = quoteCurrency || "ARS";
         if (!priceVal || priceVal <= 0) return;
 
         setQuotingId(order.id);
@@ -141,8 +150,15 @@ export default function AdminOrders() {
                 order_id: order.id
             });
 
-            // Clear the form
-            setQuotePrice(prev => ({ ...prev, [order.id]: "" }));
+            // Update selectedOrder to reflect change
+            setSelectedOrder(prev => prev ? {
+                ...prev,
+                admin_offer_price: priceVal,
+                admin_offer_currency: currencyVal,
+                status: "quoted"
+            } : null);
+
+            setQuotePrice("");
         } catch (error) {
             console.error("Error sending quote:", error);
         } finally {
@@ -186,6 +202,12 @@ export default function AdminOrders() {
     const completedCount = orders.filter(o => o.status === "completed").length;
     const quotedCount = orders.filter(o => o.status === "quoted").length;
 
+    const openOrder = (order: OrderDoc) => {
+        setSelectedOrder(order);
+        setQuotePrice("");
+        setQuoteCurrency("ARS");
+    };
+
     return (
         <div className="space-y-10">
             <header>
@@ -193,47 +215,29 @@ export default function AdminOrders() {
                     Gestión de <span className="text-primary">Pedidos</span>
                 </h1>
                 <p className="text-gray-500 mt-2 font-medium">
-                    Panel de control para administrar todas las intenciones de compra y venta.
+                    Panel de control administrativo. Click en un pedido para ver detalles y operar.
                 </p>
             </header>
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="bg-yellow-500/5 border border-yellow-500/10 rounded-2xl p-5 hover:border-yellow-500/20 transition-all">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-2.5 bg-yellow-500/10 rounded-xl"><Clock className="h-4 w-4 text-yellow-500" /></div>
+                {[
+                    { label: "Pendientes", count: pendingCount, color: "yellow-500", icon: Clock },
+                    { label: "Cotizados", count: quotedCount, color: "purple-400", icon: BadgeDollarSign },
+                    { label: "Negociando", count: negotiatingCount, color: "blue-400", icon: Handshake },
+                    { label: "Completados", count: completedCount, color: "green-500", icon: CheckCircle2 },
+                    { label: "Total", count: orders.length, color: "primary", icon: ShoppingBag },
+                ].map(stat => (
+                    <div key={stat.label} className={`bg-${stat.color}/5 border border-${stat.color}/10 rounded-2xl p-5 hover:border-${stat.color}/20 transition-all`}>
+                        <div className="flex items-center justify-between mb-3">
+                            <div className={`p-2.5 bg-${stat.color}/10 rounded-xl`}>
+                                <stat.icon className={`h-4 w-4 text-${stat.color}`} />
+                            </div>
+                        </div>
+                        <div className={`text-3xl font-black text-${stat.color} tracking-tighter`}>{stat.count}</div>
+                        <div className="text-gray-600 text-[9px] font-bold uppercase tracking-widest mt-1">{stat.label}</div>
                     </div>
-                    <div className="text-3xl font-black text-yellow-500 tracking-tighter">{pendingCount}</div>
-                    <div className="text-gray-600 text-[9px] font-bold uppercase tracking-widest mt-1">Pendientes</div>
-                </div>
-                <div className="bg-purple-500/5 border border-purple-500/10 rounded-2xl p-5 hover:border-purple-500/20 transition-all">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-2.5 bg-purple-500/10 rounded-xl"><BadgeDollarSign className="h-4 w-4 text-purple-400" /></div>
-                    </div>
-                    <div className="text-3xl font-black text-purple-400 tracking-tighter">{quotedCount}</div>
-                    <div className="text-gray-600 text-[9px] font-bold uppercase tracking-widest mt-1">Cotizados</div>
-                </div>
-                <div className="bg-blue-500/5 border border-blue-500/10 rounded-2xl p-5 hover:border-blue-500/20 transition-all">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-2.5 bg-blue-500/10 rounded-xl"><Handshake className="h-4 w-4 text-blue-400" /></div>
-                    </div>
-                    <div className="text-3xl font-black text-blue-400 tracking-tighter">{negotiatingCount}</div>
-                    <div className="text-gray-600 text-[9px] font-bold uppercase tracking-widest mt-1">Negociando</div>
-                </div>
-                <div className="bg-green-500/5 border border-green-500/10 rounded-2xl p-5 hover:border-green-500/20 transition-all">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-2.5 bg-green-500/10 rounded-xl"><CheckCircle2 className="h-4 w-4 text-green-500" /></div>
-                    </div>
-                    <div className="text-3xl font-black text-green-500 tracking-tighter">{completedCount}</div>
-                    <div className="text-gray-600 text-[9px] font-bold uppercase tracking-widest mt-1">Completados</div>
-                </div>
-                <div className="bg-primary/5 border border-primary/10 rounded-2xl p-5 hover:border-primary/20 transition-all">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="p-2.5 bg-primary/10 rounded-xl"><ShoppingBag className="h-4 w-4 text-primary" /></div>
-                    </div>
-                    <div className="text-3xl font-black text-primary tracking-tighter">{orders.length}</div>
-                    <div className="text-gray-600 text-[9px] font-bold uppercase tracking-widest mt-1">Total</div>
-                </div>
+                ))}
             </div>
 
             {/* Filter Bar */}
@@ -259,26 +263,21 @@ export default function AdminOrders() {
                             }`}
                     >
                         {f.label}
-                        {f.value !== "all" && (
-                            <span className="ml-2 opacity-60">
-                                ({orders.filter(o => f.value === "all" || o.status === f.value).length})
-                            </span>
-                        )}
                     </button>
                 ))}
             </div>
 
-            {/* Orders List */}
-            <div className="space-y-4">
+            {/* Orders — Scannable List */}
+            <div className="space-y-2">
                 {loading ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="bg-white/[0.02] border border-white/5 rounded-2xl p-8 h-28 animate-pulse" />
+                    Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className="bg-white/[0.02] border border-white/5 rounded-xl p-5 h-16 animate-pulse" />
                     ))
                 ) : filteredOrders.length === 0 ? (
                     <div className="py-32 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[2rem] space-y-4 text-center">
                         <ShoppingBag className="h-12 w-12 text-gray-700" />
                         <p className="text-xl font-display font-medium text-gray-500">
-                            {statusFilter === "all" ? "No hay pedidos registrados." : `No hay pedidos con estado "${STATUS_OPTIONS.find(s => s.value === statusFilter)?.label}".`}
+                            {statusFilter === "all" ? "No hay pedidos registrados." : `Sin pedidos "${STATUS_OPTIONS.find(s => s.value === statusFilter)?.label}".`}
                         </p>
                     </div>
                 ) : (
@@ -290,180 +289,55 @@ export default function AdminOrders() {
                             return (
                                 <motion.div
                                     key={order.id}
-                                    initial={{ opacity: 0, y: 15 }}
+                                    initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    transition={{ delay: i * 0.03 }}
-                                    className="bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden hover:border-white/10 transition-all group"
+                                    exit={{ opacity: 0 }}
+                                    transition={{ delay: i * 0.02 }}
+                                    onClick={() => openOrder(order)}
+                                    className="bg-white/[0.02] border border-white/5 rounded-xl p-4 md:p-5 flex items-center gap-4 hover:border-white/10 hover:bg-white/[0.03] transition-all cursor-pointer group"
                                 >
-                                    {/* Main Row */}
-                                    <div className="p-6 md:p-8 flex flex-col lg:flex-row items-start lg:items-center gap-6">
-                                        {/* Cover Image */}
-                                        {order.details.cover_image ? (
-                                            <div className="w-20 h-20 rounded-2xl overflow-hidden bg-white/5 flex-shrink-0 border border-white/10 group-hover:border-primary/30 transition-all">
-                                                <img src={order.details.cover_image} alt="" className="w-full h-full object-cover" />
-                                            </div>
-                                        ) : (
-                                            <div className="w-20 h-20 rounded-2xl bg-white/5 flex-shrink-0 border border-white/10 flex items-center justify-center">
-                                                <Music className="h-8 w-8 text-gray-700" />
-                                            </div>
-                                        )}
-
-                                        {/* Item Info */}
-                                        <div className="flex-1 min-w-0 space-y-2">
-                                            {/* Order Number */}
-                                            {order.order_number && (
-                                                <span className="inline-flex items-center gap-1.5 text-[9px] font-mono font-bold text-gray-600 uppercase tracking-wider">
-                                                    <Hash className="h-3 w-3" />
-                                                    {order.order_number}
-                                                </span>
-                                            )}
-                                            <div className="flex flex-wrap items-center gap-3">
-                                                <h3 className="text-lg font-display font-black text-white uppercase tracking-tight truncate">
-                                                    {order.details.artist} — {order.details.album}
-                                                </h3>
-                                                <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border ${order.details.intent === "COMPRAR"
-                                                        ? "bg-green-500/10 text-green-400 border-green-500/20"
-                                                        : "bg-orange-500/10 text-orange-400 border-orange-500/20"
-                                                    }`}>
-                                                    {order.details.intent}
-                                                </span>
-                                            </div>
-                                            <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                                                <span className="flex items-center gap-1"><Tag className="h-3 w-3" /> {order.details.format}</span>
-                                                <span>{order.details.condition}</span>
-                                                {order.details.price && (
-                                                    <span className="text-primary font-black text-xs normal-case">
-                                                        {order.details.currency === "USD" ? "US$" : "$"}{order.details.price.toLocaleString()}
-                                                    </span>
-                                                )}
-                                                {order.details.intent === "VENDER" && order.market_reference && (
-                                                    <span className="flex items-center gap-1 text-yellow-500/70 font-mono text-[10px] normal-case">
-                                                        <TrendingUp className="h-3 w-3" />
-                                                        Ref: US${order.market_reference.toFixed(2)}
-                                                    </span>
-                                                )}
-                                                {order.admin_offer_price && (
-                                                    <span className="flex items-center gap-1 text-purple-400 font-black text-xs normal-case">
-                                                        <BadgeDollarSign className="h-3.5 w-3.5" />
-                                                        Cotizado: {order.admin_offer_currency === "USD" ? "US$" : "$"}{order.admin_offer_price.toLocaleString()}
-                                                    </span>
-                                                )}
-                                                <span className="flex items-center gap-1 text-gray-700">
-                                                    <Clock className="h-3 w-3" /> {formatDate(order.timestamp)}
-                                                </span>
-                                            </div>
+                                    {/* Cover Thumbnail */}
+                                    {order.details.cover_image ? (
+                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
+                                            <img src={order.details.cover_image} alt="" className="w-full h-full object-cover" />
                                         </div>
-
-                                        {/* User Info */}
-                                        <div className="flex items-center gap-3 bg-white/[0.03] border border-white/5 rounded-xl px-4 py-3 flex-shrink-0">
-                                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
-                                                {order.user_photo ? (
-                                                    <img src={order.user_photo} alt="" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <UserIcon className="h-4 w-4 text-primary" />
-                                                )}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-white text-xs font-bold truncate max-w-[140px]">{order.user_name}</p>
-                                                <p className="text-gray-600 text-[9px] truncate max-w-[140px]">{order.user_email}</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Status Dropdown */}
-                                        <div className="relative flex-shrink-0">
-                                            <button
-                                                onClick={() => setActiveDropdown(activeDropdown === order.id ? null : order.id)}
-                                                disabled={updatingId === order.id}
-                                                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${statusConfig.bg} ${statusConfig.color} ${updatingId === order.id ? "opacity-50" : "hover:scale-105"
-                                                    }`}
-                                            >
-                                                <StatusIcon className="h-3.5 w-3.5" />
-                                                {updatingId === order.id ? "..." : statusConfig.label}
-                                                <ChevronDown className={`h-3 w-3 transition-transform ${activeDropdown === order.id ? "rotate-180" : ""}`} />
-                                            </button>
-
-                                            <AnimatePresence>
-                                                {activeDropdown === order.id && (
-                                                    <motion.div
-                                                        initial={{ opacity: 0, y: -5, scale: 0.95 }}
-                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                        exit={{ opacity: 0, y: -5, scale: 0.95 }}
-                                                        className="absolute right-0 top-full mt-2 bg-[#0A0A0A] border border-white/10 rounded-xl overflow-hidden z-50 shadow-2xl min-w-[200px]"
-                                                    >
-                                                        {STATUS_OPTIONS.map(option => {
-                                                            const OptionIcon = option.icon;
-                                                            return (
-                                                                <button
-                                                                    key={option.value}
-                                                                    onClick={() => handleStatusChange(order.id, option.value)}
-                                                                    className={`w-full flex items-center gap-3 px-5 py-3.5 transition-all text-left ${order.status === option.value ? "bg-white/5" : "hover:bg-white/5"
-                                                                        }`}
-                                                                >
-                                                                    <OptionIcon className={`h-4 w-4 ${option.color}`} />
-                                                                    <span className={`text-xs font-bold ${order.status === option.value ? option.color : "text-gray-400"}`}>
-                                                                        {option.label}
-                                                                    </span>
-                                                                    {order.status === option.value && (
-                                                                        <CheckCircle2 className="h-3 w-3 text-primary ml-auto" />
-                                                                    )}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </div>
-
-                                        {/* WhatsApp Contact */}
-                                        <button
-                                            onClick={() => handleWhatsAppContact(order)}
-                                            className="p-3 bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl hover:bg-green-500 hover:text-white hover:scale-105 transition-all flex-shrink-0"
-                                            title="Contactar por WhatsApp"
-                                        >
-                                            <MessageCircle className="h-5 w-5" />
-                                        </button>
-                                    </div>
-
-                                    {/* Quote Form — only for COMPRAR orders without an existing quote */}
-                                    {order.details.intent === "COMPRAR" && !order.admin_offer_price && (
-                                        <div className="px-6 md:px-8 pb-6 pt-2 border-t border-white/[0.03]">
-                                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-purple-400/70 flex items-center gap-1.5 flex-shrink-0">
-                                                    <BadgeDollarSign className="h-3.5 w-3.5" />
-                                                    Cotizar:
-                                                </span>
-                                                <select
-                                                    value={quoteCurrency[order.id] || "ARS"}
-                                                    onChange={e => setQuoteCurrency(prev => ({ ...prev, [order.id]: e.target.value }))}
-                                                    className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-white text-xs font-bold focus:border-purple-400/40 focus:outline-none"
-                                                >
-                                                    <option value="ARS">ARS $</option>
-                                                    <option value="USD">USD US$</option>
-                                                </select>
-                                                <div className="relative flex-1">
-                                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-600" />
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        step="0.01"
-                                                        placeholder="Precio..."
-                                                        value={quotePrice[order.id] || ""}
-                                                        onChange={e => setQuotePrice(prev => ({ ...prev, [order.id]: e.target.value }))}
-                                                        className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 pl-9 pr-4 text-white text-sm font-bold focus:border-purple-400/40 focus:outline-none"
-                                                    />
-                                                </div>
-                                                <button
-                                                    onClick={() => handleSendQuote(order)}
-                                                    disabled={quotingId === order.id || !quotePrice[order.id]}
-                                                    className="flex items-center gap-2 px-5 py-2.5 bg-purple-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-purple-400 hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:hover:scale-100"
-                                                >
-                                                    <Send className="h-3.5 w-3.5" />
-                                                    {quotingId === order.id ? "..." : "Enviar"}
-                                                </button>
-                                            </div>
+                                    ) : (
+                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-white/5 flex-shrink-0 flex items-center justify-center">
+                                            <Music className="h-5 w-5 text-gray-700" />
                                         </div>
                                     )}
+
+                                    {/* Item Summary */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-sm font-bold text-white truncate">
+                                                {order.details.artist} — {order.details.album}
+                                            </h3>
+                                        </div>
+                                        <div className="flex items-center gap-3 mt-1">
+                                            {order.order_number && (
+                                                <span className="text-[8px] font-mono text-gray-600">{order.order_number}</span>
+                                            )}
+                                            <span className="text-gray-600 text-[9px] font-bold">{order.user_name}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Intent Badge */}
+                                    <span className={`hidden sm:inline px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border flex-shrink-0 ${order.details.intent === "COMPRAR"
+                                            ? "bg-green-500/10 text-green-400 border-green-500/20"
+                                            : "bg-orange-500/10 text-orange-400 border-orange-500/20"
+                                        }`}>
+                                        {order.details.intent}
+                                    </span>
+
+                                    {/* Status */}
+                                    <span className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border flex-shrink-0 ${statusConfig.bg} ${statusConfig.color}`}>
+                                        <StatusIcon className="h-3 w-3 inline mr-1" />
+                                        <span className="hidden md:inline">{statusConfig.label}</span>
+                                    </span>
+
+                                    {/* Arrow */}
+                                    <ChevronRight className="h-4 w-4 text-gray-700 group-hover:text-primary transition-colors flex-shrink-0" />
                                 </motion.div>
                             );
                         })}
@@ -471,9 +345,213 @@ export default function AdminOrders() {
                 )}
             </div>
 
-            {activeDropdown && (
-                <div className="fixed inset-0 z-40" onClick={() => setActiveDropdown(null)} />
-            )}
+            {/* ====== Admin Order Detail Drawer ====== */}
+            <OrderDetailsDrawer
+                isOpen={!!selectedOrder}
+                onClose={() => { setSelectedOrder(null); setActiveDropdown(null); }}
+                title={selectedOrder?.order_number || "Detalle de Pedido"}
+                footer={
+                    selectedOrder && (
+                        <div className="space-y-4">
+                            {/* Status Changer */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setActiveDropdown(activeDropdown ? null : selectedOrder.id)}
+                                    disabled={updatingId === selectedOrder.id}
+                                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${getStatusConfig(selectedOrder.status).bg
+                                        } ${getStatusConfig(selectedOrder.status).color} ${updatingId === selectedOrder.id ? "opacity-50" : ""
+                                        }`}
+                                >
+                                    <span className="flex items-center gap-2">
+                                        {(() => { const Icon = getStatusConfig(selectedOrder.status).icon; return <Icon className="h-3.5 w-3.5" />; })()}
+                                        {updatingId === selectedOrder.id ? "Actualizando..." : getStatusConfig(selectedOrder.status).label}
+                                    </span>
+                                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${activeDropdown ? "rotate-180" : ""}`} />
+                                </button>
+
+                                <AnimatePresence>
+                                    {activeDropdown && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 5 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: 5 }}
+                                            className="absolute bottom-full mb-2 left-0 right-0 bg-neutral-900 border border-white/10 rounded-xl overflow-hidden z-50 shadow-2xl"
+                                        >
+                                            {STATUS_OPTIONS.map(option => {
+                                                const OptionIcon = option.icon;
+                                                return (
+                                                    <button
+                                                        key={option.value}
+                                                        onClick={() => handleStatusChange(selectedOrder.id, option.value)}
+                                                        className={`w-full flex items-center gap-3 px-5 py-3 transition-all text-left ${selectedOrder.status === option.value ? "bg-white/5" : "hover:bg-white/5"
+                                                            }`}
+                                                    >
+                                                        <OptionIcon className={`h-4 w-4 ${option.color}`} />
+                                                        <span className={`text-xs font-bold ${selectedOrder.status === option.value ? option.color : "text-gray-400"}`}>
+                                                            {option.label}
+                                                        </span>
+                                                        {selectedOrder.status === option.value && (
+                                                            <CheckCircle2 className="h-3 w-3 text-primary ml-auto" />
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Quote Form (COMPRAR orders without existing quote) */}
+                            {selectedOrder.details.intent === "COMPRAR" && !selectedOrder.admin_offer_price && (
+                                <div className="space-y-3 pt-2 border-t border-white/5">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-purple-400/70 flex items-center gap-1.5">
+                                        <BadgeDollarSign className="h-3.5 w-3.5" />
+                                        Enviar Cotización
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <select
+                                            value={quoteCurrency}
+                                            onChange={e => setQuoteCurrency(e.target.value)}
+                                            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-white text-xs font-bold focus:border-purple-400/40 focus:outline-none"
+                                        >
+                                            <option value="ARS">ARS $</option>
+                                            <option value="USD">USD US$</option>
+                                        </select>
+                                        <div className="relative flex-1">
+                                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-600" />
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                placeholder="Precio..."
+                                                value={quotePrice}
+                                                onChange={e => setQuotePrice(e.target.value)}
+                                                className="w-full bg-white/5 border border-white/10 rounded-lg py-2.5 pl-9 pr-4 text-white text-sm font-bold focus:border-purple-400/40 focus:outline-none"
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => handleSendQuote(selectedOrder)}
+                                            disabled={quotingId === selectedOrder.id || !quotePrice}
+                                            className="px-4 py-2.5 bg-purple-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-purple-400 transition-all disabled:opacity-40"
+                                        >
+                                            <Send className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* WhatsApp */}
+                            <button
+                                onClick={() => handleWhatsAppContact(selectedOrder)}
+                                className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-500 hover:text-white transition-all"
+                            >
+                                <MessageCircle className="h-4 w-4" />
+                                Contactar por WhatsApp
+                            </button>
+                        </div>
+                    )
+                }
+            >
+                {selectedOrder && (
+                    <>
+                        {/* User Section */}
+                        <div className="flex items-center gap-4 bg-white/[0.03] border border-white/5 rounded-xl p-4">
+                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                {selectedOrder.user_photo ? (
+                                    <img src={selectedOrder.user_photo} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                    <UserIcon className="h-5 w-5 text-primary" />
+                                )}
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-white text-sm font-bold truncate">{selectedOrder.user_name}</p>
+                                <p className="text-gray-600 text-xs truncate">{selectedOrder.user_email}</p>
+                            </div>
+                        </div>
+
+                        {/* Cover Image */}
+                        {selectedOrder.details.cover_image && (
+                            <div className="w-full aspect-square max-h-[280px] rounded-2xl overflow-hidden border border-white/10">
+                                <img src={selectedOrder.details.cover_image} alt="" className="w-full h-full object-cover" />
+                            </div>
+                        )}
+
+                        {/* Item Info */}
+                        <div className="space-y-2">
+                            <h3 className="text-2xl font-display font-black text-white uppercase tracking-tight leading-tight">
+                                {selectedOrder.details.artist}
+                            </h3>
+                            <p className="text-lg text-gray-400 font-bold">{selectedOrder.details.album}</p>
+                        </div>
+
+                        {/* Details Grid */}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Intención</p>
+                                <p className={`text-sm font-black uppercase ${selectedOrder.details.intent === "COMPRAR" ? "text-green-400" : "text-orange-400"}`}>
+                                    {selectedOrder.details.intent}
+                                </p>
+                            </div>
+                            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Estado</p>
+                                <p className={`text-sm font-black ${getStatusConfig(selectedOrder.status).color}`}>
+                                    {getStatusConfig(selectedOrder.status).label}
+                                </p>
+                            </div>
+                            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Formato</p>
+                                <p className="text-sm font-bold text-white">{selectedOrder.details.format}</p>
+                            </div>
+                            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Condición</p>
+                                <p className="text-sm font-bold text-white">{selectedOrder.details.condition}</p>
+                            </div>
+                        </div>
+
+                        {/* Price Info */}
+                        {selectedOrder.details.price && (
+                            <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 flex items-center justify-between">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Precio Usuario</span>
+                                <span className="text-xl font-display font-black text-primary">
+                                    {selectedOrder.details.currency === "USD" ? "US$" : "$"} {selectedOrder.details.price.toLocaleString()}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Market Reference */}
+                        {selectedOrder.details.intent === "VENDER" && selectedOrder.market_reference && (
+                            <div className="bg-yellow-500/5 border border-yellow-500/10 rounded-xl p-4 flex items-center justify-between">
+                                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-gray-500">
+                                    <TrendingUp className="h-3.5 w-3.5 text-yellow-500" />
+                                    Ref. Discogs
+                                </span>
+                                <span className="text-lg font-mono font-bold text-yellow-500">
+                                    US$ {selectedOrder.market_reference.toFixed(2)}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Admin Offer (if already quoted) */}
+                        {selectedOrder.admin_offer_price && (
+                            <div className="bg-purple-500/[0.05] border border-purple-500/15 rounded-xl p-4 flex items-center justify-between">
+                                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-purple-400">
+                                    <BadgeDollarSign className="h-3.5 w-3.5" />
+                                    Cotizado
+                                </span>
+                                <span className="text-xl font-display font-black text-white">
+                                    {selectedOrder.admin_offer_currency === "USD" ? "US$" : "$"} {selectedOrder.admin_offer_price.toLocaleString()}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Date */}
+                        <div className="flex items-center gap-2 text-gray-600 text-xs font-bold">
+                            <Clock className="h-3.5 w-3.5" />
+                            {formatDate(selectedOrder.timestamp)}
+                        </div>
+                    </>
+                )}
+            </OrderDetailsDrawer>
         </div>
     );
 }

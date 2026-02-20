@@ -27,6 +27,7 @@ import { collection, onSnapshot, query, orderBy, where, doc, deleteDoc } from "f
 import { useState, useEffect } from "react";
 import { AlbumCardSkeleton } from "@/components/ui/Skeleton";
 import { Link } from "react-router-dom";
+import OrderDetailsDrawer from "@/components/OrderDetailsDrawer";
 
 interface ProfileItem {
     id: string;
@@ -67,6 +68,7 @@ export default function Profile() {
     const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [ordersLoading, setOrdersLoading] = useState(true);
+    const [selectedOrder, setSelectedOrder] = useState<OrderItem | null>(null);
 
     useEffect(() => {
         if (!user) return;
@@ -261,7 +263,8 @@ export default function Profile() {
                                                 initial={{ opacity: 0, x: -20 }}
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: i * 0.05 }}
-                                                className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 flex items-center gap-6 hover:border-primary/20 transition-all group"
+                                                onClick={() => setSelectedOrder(order)}
+                                                className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 flex items-center gap-6 hover:border-primary/20 transition-all group cursor-pointer"
                                             >
                                                 {order.details.cover_image && (
                                                     <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5 flex-shrink-0 border border-white/10">
@@ -271,22 +274,14 @@ export default function Profile() {
                                                 <div className="flex-1 min-w-0">
                                                     <h4 className="text-white font-bold truncate">{order.details.artist} - {order.details.album}</h4>
                                                     <div className="flex flex-wrap items-center gap-3 mt-2">
-                                                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${order.details.intent === "COMPRAR" ? "bg-blue-500/10 text-blue-400" : "bg-green-500/10 text-green-400"}`}>
+                                                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${order.details.intent === "COMPRAR" ? "bg-green-500/10 text-green-400" : "bg-orange-500/10 text-orange-400"}`}>
                                                             {order.details.intent}
                                                         </span>
                                                         <span className="text-gray-600 text-[10px] font-bold">{order.details.format} • {order.details.condition}</span>
-                                                        {order.details.price && (
-                                                            <span className="text-primary text-xs font-black">
-                                                                {order.details.currency === "USD" ? "US$" : "$"}{order.details.price.toLocaleString()}
-                                                            </span>
-                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
                                                     {getStatusBadge(order.status)}
-                                                    <span className="text-gray-700 text-[9px] font-bold flex items-center gap-1">
-                                                        <Clock className="h-3 w-3" /> {formatDate(order.timestamp)}
-                                                    </span>
                                                 </div>
                                             </motion.div>
                                         ))}
@@ -331,7 +326,8 @@ export default function Profile() {
                                             initial={{ opacity: 0, y: 15 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: i * 0.04 }}
-                                            className={`bg-white/[0.02] border rounded-[1.5rem] overflow-hidden transition-all group ${order.admin_offer_price
+                                            onClick={() => setSelectedOrder(order)}
+                                            className={`bg-white/[0.02] border rounded-[1.5rem] overflow-hidden transition-all group cursor-pointer ${order.admin_offer_price
                                                 ? "border-purple-500/20 hover:border-purple-500/40"
                                                 : "border-white/5 hover:border-primary/20"
                                                 }`}
@@ -485,6 +481,105 @@ export default function Profile() {
                     )}
                 </motion.div>
             </AnimatePresence>
+
+            {/* Order Details Drawer */}
+            <OrderDetailsDrawer
+                isOpen={!!selectedOrder}
+                onClose={() => setSelectedOrder(null)}
+                title={selectedOrder?.order_number || "Detalle de Pedido"}
+                footer={
+                    selectedOrder && (
+                        selectedOrder.admin_offer_price ? (
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <BadgeDollarSign className="h-4 w-4 text-purple-400" />
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">Cotización Recibida</span>
+                                        </div>
+                                        <p className="text-3xl font-display font-black text-white tracking-tight">
+                                            {selectedOrder.admin_offer_currency === "USD" ? "US$" : "$"} {selectedOrder.admin_offer_price.toLocaleString()}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const item = `${selectedOrder.details.artist} - ${selectedOrder.details.album}`;
+                                        const currSymbol = selectedOrder.admin_offer_currency === "USD" ? "US$" : "$";
+                                        const msg = encodeURIComponent(
+                                            `Hola! Vi la cotización de ${currSymbol} ${selectedOrder.admin_offer_price?.toLocaleString()} para ${item} (${selectedOrder.order_number || "pedido"}). Me interesa avanzar.`
+                                        );
+                                        window.open(`https://wa.me/?text=${msg}`, "_blank");
+                                    }}
+                                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-green-400 hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-green-500/20"
+                                >
+                                    <MessageCircle className="h-4 w-4" />
+                                    Contactar por WhatsApp
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-center py-3">
+                                <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Esperando cotización del administrador</p>
+                            </div>
+                        )
+                    )
+                }
+            >
+                {selectedOrder && (
+                    <>
+                        {/* Cover Image */}
+                        {selectedOrder.details.cover_image && (
+                            <div className="w-full aspect-square max-h-[300px] rounded-2xl overflow-hidden border border-white/10">
+                                <img src={selectedOrder.details.cover_image} alt="" className="w-full h-full object-cover" />
+                            </div>
+                        )}
+
+                        {/* Item Info */}
+                        <div className="space-y-2">
+                            <h3 className="text-2xl font-display font-black text-white uppercase tracking-tight leading-tight">
+                                {selectedOrder.details.artist}
+                            </h3>
+                            <p className="text-lg text-gray-400 font-bold">{selectedOrder.details.album}</p>
+                        </div>
+
+                        {/* Details Grid */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Intención</p>
+                                <p className={`text-sm font-black uppercase ${selectedOrder.details.intent === "COMPRAR" ? "text-green-400" : "text-orange-400"}`}>{selectedOrder.details.intent}</p>
+                            </div>
+                            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Estado</p>
+                                <div>{getStatusBadge(selectedOrder.status)}</div>
+                            </div>
+                            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Formato</p>
+                                <p className="text-sm font-bold text-white">{selectedOrder.details.format}</p>
+                            </div>
+                            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Condición</p>
+                                <p className="text-sm font-bold text-white">{selectedOrder.details.condition}</p>
+                            </div>
+                        </div>
+
+                        {/* Price (for VENDER) */}
+                        {selectedOrder.details.price && (
+                            <div className="bg-primary/5 border border-primary/10 rounded-xl p-5 flex items-center justify-between">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Tu Precio</span>
+                                <span className="text-xl font-display font-black text-primary">
+                                    {selectedOrder.details.currency === "USD" ? "US$" : "$"} {selectedOrder.details.price.toLocaleString()}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Date */}
+                        <div className="flex items-center gap-2 text-gray-600 text-xs font-bold">
+                            <Clock className="h-3.5 w-3.5" />
+                            {formatDate(selectedOrder.timestamp)}
+                        </div>
+                    </>
+                )}
+            </OrderDetailsDrawer>
         </div>
     );
 }

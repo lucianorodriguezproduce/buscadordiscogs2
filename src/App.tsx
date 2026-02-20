@@ -9,6 +9,7 @@ import PublicOrders from "@/pages/PublicOrders";
 import AlbumDetail from "@/pages/AlbumDetail";
 import Editorial from "@/pages/Editorial";
 import ArticleDetail from "@/pages/ArticleDetail";
+import Eventos from "@/pages/Eventos";
 import Profile from "@/pages/Profile";
 import AdminLayout from "@/components/Admin/AdminLayout";
 import SyncDashboard from "@/pages/Admin/SyncDashboard";
@@ -41,6 +42,7 @@ function AppContent() {
           <Route path="/album/:id" element={<AlbumDetail />} />
           <Route path="/editorial" element={<Editorial />} />
           <Route path="/editorial/:id" element={<ArticleDetail />} />
+          <Route path="/eventos" element={<Eventos />} />
 
           <Route element={<ProtectedRoute />}>
             <Route path="/profile" element={<Profile />} />

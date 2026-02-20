@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ChevronRight, CheckCircle2, Mail, Layers, DollarSign } from "lucide-react";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useDebounce } from "@/hooks/useDebounce";
 import { discogsService, type DiscogsSearchResult } from "@/lib/discogs";
@@ -113,8 +113,13 @@ export default function Home() {
     const buildOrderPayload = (uid: string) => {
         if (!selectedItem || !format || !condition || !intent) return null;
 
+        const currentUser = auth.currentUser;
+
         const payload: any = {
             user_id: uid,
+            user_email: currentUser?.email || "Sin email",
+            user_name: currentUser?.displayName || "Usuario Registrado",
+            user_photo: currentUser?.photoURL || "",
             item_id: selectedItem.id,
             details: {
                 format,

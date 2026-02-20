@@ -7,8 +7,7 @@ import {
     query,
     orderBy,
     doc,
-    updateDoc,
-    getDoc
+    updateDoc
 } from "firebase/firestore";
 import {
     ShoppingBag,
@@ -18,7 +17,6 @@ import {
     Music,
     MessageCircle,
     ChevronDown,
-    AlertCircle,
     CheckCircle2,
     XCircle,
     Handshake,
@@ -29,6 +27,9 @@ import {
 interface OrderDoc {
     id: string;
     user_id: string;
+    user_email: string;
+    user_name: string;
+    user_photo: string;
     item_id: number;
     status: string;
     timestamp: any;
@@ -41,12 +42,6 @@ interface OrderDoc {
         cover_image?: string;
         price?: number;
         currency?: string;
-    };
-    // Enriched user data (fetched separately)
-    _user?: {
-        email: string;
-        display_name: string;
-        photoURL?: string;
     };
 }
 
@@ -66,46 +61,33 @@ export default function AdminOrders() {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
     const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-    // Fetch all orders with real-time listener
+    // Fetch all orders — NO cross-collection reads, user data lives on the order doc
     useEffect(() => {
         const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
 
-        const unsub = onSnapshot(q, async (snap) => {
-            const rawOrders = snap.docs.map(d => ({ id: d.id, ...d.data() } as OrderDoc));
+        const unsub = onSnapshot(q, (snap) => {
+            const docs = snap.docs.map(d => ({
+                id: d.id,
+                user_email: "Sin email",
+                user_name: "Usuario Registrado",
+                user_photo: "",
+                ...d.data()
+            } as OrderDoc));
 
-            // Enrich with user data
-            const userCache: Record<string, any> = {};
-            const enriched = await Promise.all(
-                rawOrders.map(async (order) => {
-                    if (!userCache[order.user_id]) {
-                        try {
-                            const userDoc = await getDoc(doc(db, "users", order.user_id));
-                            userCache[order.user_id] = userDoc.exists() ? userDoc.data() : null;
-                        } catch {
-                            userCache[order.user_id] = null;
-                        }
-                    }
-                    return {
-                        ...order,
-                        _user: userCache[order.user_id] || { email: "Desconocido", display_name: "Usuario" }
-                    };
-                })
-            );
-
-            setOrders(enriched);
+            setOrders(docs);
             setLoading(false);
         });
 
         return () => unsub();
     }, []);
 
+    // Only updates the 'status' field — nothing else
     const handleStatusChange = async (orderId: string, newStatus: string) => {
         setUpdatingId(orderId);
         try {
             await updateDoc(doc(db, "orders", orderId), { status: newStatus });
         } catch (error) {
-            console.error("Error updating status:", error);
-            alert("Error al actualizar el estado del pedido.");
+            console.error("Error updating order status:", error);
         } finally {
             setUpdatingId(null);
             setActiveDropdown(null);
@@ -113,8 +95,7 @@ export default function AdminOrders() {
     };
 
     const handleWhatsAppContact = (order: OrderDoc) => {
-        const email = order._user?.email || "";
-        const name = order._user?.display_name || "Cliente";
+        const name = order.user_name || "Cliente";
         const item = `${order.details.artist} - ${order.details.album}`;
         const intent = order.details.intent === "COMPRAR" ? "comprar" : "vender";
         const priceText = order.details.price
@@ -124,8 +105,6 @@ export default function AdminOrders() {
         const message = encodeURIComponent(
             `Hola ${name}! Te contactamos desde Oldie but Goldie por tu pedido de ${intent}: ${item}${priceText}. ¿Seguimos coordinando?`
         );
-
-        // Open WhatsApp web with the message (user can paste contact number)
         window.open(`https://wa.me/?text=${message}`, "_blank");
     };
 
@@ -134,11 +113,8 @@ export default function AdminOrders() {
         try {
             const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
             return date.toLocaleDateString("es-AR", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit"
+                day: "2-digit", month: "short", year: "numeric",
+                hour: "2-digit", minute: "2-digit"
             });
         } catch {
             return "Reciente";
@@ -149,18 +125,13 @@ export default function AdminOrders() {
         return STATUS_OPTIONS.find(s => s.value === status) || STATUS_OPTIONS[0];
     };
 
-    // Filtered orders
     const filteredOrders = statusFilter === "all"
         ? orders
         : orders.filter(o => o.status === statusFilter);
 
-    // Stats
     const pendingCount = orders.filter(o => o.status === "pending").length;
     const negotiatingCount = orders.filter(o => o.status === "negotiating").length;
     const completedCount = orders.filter(o => o.status === "completed").length;
-    const totalRevenue = orders
-        .filter(o => o.status === "completed" && o.details.price)
-        .reduce((sum, o) => sum + (o.details.price || 0), 0);
 
     return (
         <div className="space-y-10">
@@ -176,44 +147,33 @@ export default function AdminOrders() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-yellow-500/5 border border-yellow-500/10 rounded-2xl p-6 group hover:border-yellow-500/20 transition-all">
+                <div className="bg-yellow-500/5 border border-yellow-500/10 rounded-2xl p-6 hover:border-yellow-500/20 transition-all">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-yellow-500/10 rounded-xl">
-                            <Clock className="h-5 w-5 text-yellow-500" />
-                        </div>
+                        <div className="p-3 bg-yellow-500/10 rounded-xl"><Clock className="h-5 w-5 text-yellow-500" /></div>
                         <span className="text-[9px] font-black uppercase tracking-widest text-yellow-500/60">Urgentes</span>
                     </div>
                     <div className="text-4xl font-black text-yellow-500 tracking-tighter">{pendingCount}</div>
                     <div className="text-gray-600 text-[10px] font-bold uppercase tracking-widest mt-1">Pendientes</div>
                 </div>
-
-                <div className="bg-blue-500/5 border border-blue-500/10 rounded-2xl p-6 group hover:border-blue-500/20 transition-all">
+                <div className="bg-blue-500/5 border border-blue-500/10 rounded-2xl p-6 hover:border-blue-500/20 transition-all">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-blue-500/10 rounded-xl">
-                            <Handshake className="h-5 w-5 text-blue-400" />
-                        </div>
+                        <div className="p-3 bg-blue-500/10 rounded-xl"><Handshake className="h-5 w-5 text-blue-400" /></div>
                         <span className="text-[9px] font-black uppercase tracking-widest text-blue-400/60">Activos</span>
                     </div>
                     <div className="text-4xl font-black text-blue-400 tracking-tighter">{negotiatingCount}</div>
                     <div className="text-gray-600 text-[10px] font-bold uppercase tracking-widest mt-1">En Negociación</div>
                 </div>
-
-                <div className="bg-green-500/5 border border-green-500/10 rounded-2xl p-6 group hover:border-green-500/20 transition-all">
+                <div className="bg-green-500/5 border border-green-500/10 rounded-2xl p-6 hover:border-green-500/20 transition-all">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-green-500/10 rounded-xl">
-                            <CheckCircle2 className="h-5 w-5 text-green-500" />
-                        </div>
+                        <div className="p-3 bg-green-500/10 rounded-xl"><CheckCircle2 className="h-5 w-5 text-green-500" /></div>
                         <span className="text-[9px] font-black uppercase tracking-widest text-green-500/60">Cerrados</span>
                     </div>
                     <div className="text-4xl font-black text-green-500 tracking-tighter">{completedCount}</div>
                     <div className="text-gray-600 text-[10px] font-bold uppercase tracking-widest mt-1">Completados</div>
                 </div>
-
-                <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6 group hover:border-primary/20 transition-all">
+                <div className="bg-primary/5 border border-primary/10 rounded-2xl p-6 hover:border-primary/20 transition-all">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="p-3 bg-primary/10 rounded-xl">
-                            <DollarSign className="h-5 w-5 text-primary" />
-                        </div>
+                        <div className="p-3 bg-primary/10 rounded-xl"><DollarSign className="h-5 w-5 text-primary" /></div>
                         <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">Revenue</span>
                     </div>
                     <div className="text-4xl font-black text-primary tracking-tighter">{orders.length}</div>
@@ -306,9 +266,7 @@ export default function AdminOrders() {
                                                 </span>
                                             </div>
                                             <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                                                <span className="flex items-center gap-1">
-                                                    <Tag className="h-3 w-3" /> {order.details.format}
-                                                </span>
+                                                <span className="flex items-center gap-1"><Tag className="h-3 w-3" /> {order.details.format}</span>
                                                 <span>{order.details.condition}</span>
                                                 {order.details.price && (
                                                     <span className="text-primary font-black text-xs normal-case">
@@ -321,18 +279,18 @@ export default function AdminOrders() {
                                             </div>
                                         </div>
 
-                                        {/* User Info */}
+                                        {/* User Info — reads directly from order doc, NO cross-collection fetch */}
                                         <div className="flex items-center gap-3 bg-white/[0.03] border border-white/5 rounded-xl px-4 py-3 flex-shrink-0">
                                             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
-                                                {order._user?.photoURL ? (
-                                                    <img src={order._user.photoURL} alt="" className="w-full h-full object-cover" />
+                                                {order.user_photo ? (
+                                                    <img src={order.user_photo} alt="" className="w-full h-full object-cover" />
                                                 ) : (
                                                     <UserIcon className="h-4 w-4 text-primary" />
                                                 )}
                                             </div>
                                             <div className="min-w-0">
-                                                <p className="text-white text-xs font-bold truncate max-w-[140px]">{order._user?.display_name}</p>
-                                                <p className="text-gray-600 text-[9px] truncate max-w-[140px]">{order._user?.email}</p>
+                                                <p className="text-white text-xs font-bold truncate max-w-[140px]">{order.user_name}</p>
+                                                <p className="text-gray-600 text-[9px] truncate max-w-[140px]">{order.user_email}</p>
                                             </div>
                                         </div>
 
@@ -363,9 +321,7 @@ export default function AdminOrders() {
                                                                 <button
                                                                     key={option.value}
                                                                     onClick={() => handleStatusChange(order.id, option.value)}
-                                                                    className={`w-full flex items-center gap-3 px-5 py-3.5 transition-all text-left ${order.status === option.value
-                                                                            ? "bg-white/5"
-                                                                            : "hover:bg-white/5"
+                                                                    className={`w-full flex items-center gap-3 px-5 py-3.5 transition-all text-left ${order.status === option.value ? "bg-white/5" : "hover:bg-white/5"
                                                                         }`}
                                                                 >
                                                                     <OptionIcon className={`h-4 w-4 ${option.color}`} />
@@ -401,10 +357,7 @@ export default function AdminOrders() {
 
             {/* Click outside to close dropdown */}
             {activeDropdown && (
-                <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setActiveDropdown(null)}
-                />
+                <div className="fixed inset-0 z-40" onClick={() => setActiveDropdown(null)} />
             )}
         </div>
     );

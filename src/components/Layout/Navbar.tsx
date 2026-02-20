@@ -3,6 +3,7 @@ import { Disc, Search, User as UserIcon, LogOut, BookOpen, Menu, X } from "lucid
 import { useAuth } from "@/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
+import NotificationBell from "@/components/NotificationBell";
 
 export const Navbar = () => {
     const location = useLocation();
@@ -53,7 +54,8 @@ export const Navbar = () => {
                         {/* Auth / User Section */}
                         <div className="hidden md:flex items-center gap-4">
                             {user ? (
-                                <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-4">
+                                    <NotificationBell />
                                     <Link to="/profile" className="flex items-center gap-3 bg-white/5 pl-2 pr-4 py-1.5 rounded-full border border-white/5 hover:bg-white/10 transition-all group">
                                         <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-black font-black text-xs overflow-hidden group-hover:scale-110 transition-transform">
                                             {user.photoURL ? (
@@ -124,6 +126,7 @@ export const Navbar = () => {
                                             {user.photoURL ? <img src={user.photoURL} alt="User" /> : user.email?.charAt(0).toUpperCase()}
                                         </div>
                                         <span className="uppercase tracking-widest font-black">{user.displayName || user.email?.split("@")[0]}</span>
+                                        <div className="ml-auto"><NotificationBell /></div>
                                     </Link>
                                     <button
                                         onClick={() => logout()}

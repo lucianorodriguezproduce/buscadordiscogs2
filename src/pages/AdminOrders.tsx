@@ -7,7 +7,9 @@ import {
     query,
     orderBy,
     doc,
-    updateDoc
+    updateDoc,
+    addDoc,
+    serverTimestamp
 } from "firebase/firestore";
 import {
     ShoppingBag,
@@ -81,11 +83,27 @@ export default function AdminOrders() {
         return () => unsub();
     }, []);
 
-    // Only updates the 'status' field — nothing else
+    // Only updates the 'status' field, then creates a notification for the user
     const handleStatusChange = async (orderId: string, newStatus: string) => {
         setUpdatingId(orderId);
         try {
             await updateDoc(doc(db, "orders", orderId), { status: newStatus });
+
+            // Find the order to get item info for the notification
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                const statusLabel = STATUS_OPTIONS.find(s => s.value === newStatus)?.label || newStatus;
+                const itemTitle = `${order.details.artist} - ${order.details.album}`;
+
+                await addDoc(collection(db, "notifications"), {
+                    user_id: order.user_id,
+                    title: "Actualización de Pedido",
+                    message: `Tu pedido de ${itemTitle} ha cambiado a: ${statusLabel}`,
+                    read: false,
+                    timestamp: serverTimestamp(),
+                    order_id: order.id
+                });
+            }
         } catch (error) {
             console.error("Error updating order status:", error);
         } finally {
@@ -198,8 +216,8 @@ export default function AdminOrders() {
                         key={f.value}
                         onClick={() => setStatusFilter(f.value as StatusFilter)}
                         className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${statusFilter === f.value
-                                ? "bg-primary text-black border-primary"
-                                : "bg-white/5 text-gray-500 border-white/5 hover:border-white/10"
+                            ? "bg-primary text-black border-primary"
+                            : "bg-white/5 text-gray-500 border-white/5 hover:border-white/10"
                             }`}
                     >
                         {f.label}
@@ -259,8 +277,8 @@ export default function AdminOrders() {
                                                     {order.details.artist} — {order.details.album}
                                                 </h3>
                                                 <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border ${order.details.intent === "COMPRAR"
-                                                        ? "bg-green-500/10 text-green-400 border-green-500/20"
-                                                        : "bg-orange-500/10 text-orange-400 border-orange-500/20"
+                                                    ? "bg-green-500/10 text-green-400 border-green-500/20"
+                                                    : "bg-orange-500/10 text-orange-400 border-orange-500/20"
                                                     }`}>
                                                     {order.details.intent}
                                                 </span>

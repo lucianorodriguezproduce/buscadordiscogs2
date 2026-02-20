@@ -107,7 +107,7 @@ export default function Home() {
                                     format: orderData.details?.format,
                                     condition: orderData.details?.condition,
                                     intent: orderData.details?.intent,
-                                    price: orderData.price || null,
+                                    price: orderData.details?.price || null,
                                     timestamp: orderData.timestamp?.toDate() || new Date(),
                                     isOwner: auth.currentUser?.uid === orderData.user_id
                                 });

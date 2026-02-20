@@ -61,7 +61,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const fbData = await fbResponse.json();
                 if (fbData && fbData.length > 0 && fbData[0].document) {
                     const status = fbData[0].document.fields?.status?.stringValue;
-                    const price = fbData[0].document.fields?.price?.integerValue || fbData[0].document.fields?.price?.doubleValue;
+                    const detailsMap = fbData[0].document.fields?.details?.mapValue?.fields;
+                    const price = detailsMap?.price?.integerValue || detailsMap?.price?.doubleValue;
                     if (status) orderStatusStr = status.toUpperCase();
                     if (price) orderPriceStr = `$${price}`;
                 }

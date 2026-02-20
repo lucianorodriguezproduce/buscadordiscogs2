@@ -25,38 +25,33 @@ export default function PublicOrders() {
     useEffect(() => {
         const fetchOrders = async () => {
             try {
+                setLoading(true);
                 const ordersRef = collection(db, 'orders');
-                const q = query(ordersRef, orderBy('createdAt', 'desc'));
+                const q = query(ordersRef, orderBy('timestamp', 'desc'));
                 const querySnapshot = await getDocs(q);
+
+                console.log("Datos recibidos de Firebase:", querySnapshot.docs.map(d => d.data()));
 
                 const publicOrdersData: PublicOrder[] = querySnapshot.docs.map(doc => {
                     const data = doc.data();
 
-                    // Fallbacks for array vs string artist logic frequently found in Discogs data
-                    let artistName = 'Unknown Artist';
-                    if (data.itemDetails?.artists && Array.isArray(data.itemDetails.artists)) {
-                        artistName = data.itemDetails.artists.map((a: any) => a.name).join(', ');
-                    } else if (typeof data.itemDetails?.artist === 'string') {
-                        artistName = data.itemDetails.artist;
-                    }
-
                     return {
                         id: doc.id,
-                        itemType: data.itemType || 'release',
-                        itemId: data.itemId || '',
-                        title: data.itemDetails?.title || 'Unknown Title',
-                        artist: artistName,
-                        imageUrl: data.itemDetails?.cover_image || data.itemDetails?.thumb || '',
+                        itemType: 'release', // Defaulting since type is not explicitly stored in V1 payload
+                        itemId: data.item_id || '',
+                        title: data.details?.album || 'Unknown Title',
+                        artist: data.details?.artist || 'Unknown Artist',
+                        imageUrl: data.details?.cover_image || '',
                         status: data.status || 'pending',
-                        createdAt: data.createdAt?.toDate() || new Date(),
+                        createdAt: data.timestamp?.toDate() || new Date(),
                     };
                 });
 
                 // Filter out missing items that would break the dynamically generated routes
-                const validOrders = publicOrdersData.filter(o => o.itemId && o.itemType);
+                const validOrders = publicOrdersData.filter(o => o.itemId);
                 setOrders(validOrders);
             } catch (error) {
-                console.error("Error fetching public activity feed:", error);
+                console.error("Error fetching public activity feed: Missing Firebase Composite Index or Invalid Rule. Detalle: ", error);
             } finally {
                 setLoading(false);
             }

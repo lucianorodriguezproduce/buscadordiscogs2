@@ -1176,10 +1176,10 @@ export default function Home() {
             <AnimatePresence>
                 {showToast && (
                     <motion.div
-                        initial={{ opacity: 0, y: 50, scale: 0.9 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 20, scale: 0.9 }}
-                        className="fixed bottom-24 md:bottom-12 left-1/2 -translate-x-1/2 z-[60] bg-[#111] border border-primary/30 shadow-[0_0_40px_rgba(204,255,0,0.15)] rounded-2xl p-4 md:p-6 w-[90%] max-w-sm"
+                        initial={{ opacity: 0, y: 50, x: "-50%", scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, x: "-50%", scale: 1 }}
+                        exit={{ opacity: 0, y: 20, x: "-50%", scale: 0.9 }}
+                        className="fixed bottom-24 md:bottom-12 left-1/2 z-[60] bg-[#111] border border-primary/30 shadow-[0_0_40px_rgba(204,255,0,0.15)] rounded-2xl p-4 md:p-6 w-[90%] max-w-sm"
                     >
                         <div className="text-center space-y-4">
                             <div className="flex items-center justify-center gap-3">

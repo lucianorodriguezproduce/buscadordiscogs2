@@ -33,6 +33,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // FIREBASE CROSS-REFERENCE FOR DYNAMIC SEO
         let orderStatusStr = "";
+        let orderPriceStr = "";
         try {
             const projectId = process.env.VITE_FIREBASE_PROJECT_ID || 'intras-projects';
             const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`;
@@ -60,7 +61,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 const fbData = await fbResponse.json();
                 if (fbData && fbData.length > 0 && fbData[0].document) {
                     const status = fbData[0].document.fields?.status?.stringValue;
+                    const price = fbData[0].document.fields?.price?.integerValue || fbData[0].document.fields?.price?.doubleValue;
                     if (status) orderStatusStr = status.toUpperCase();
+                    if (price) orderPriceStr = `$${price}`;
                 }
             }
         } catch (e) {
@@ -98,8 +101,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const title = discogsData.title ? `${discogsData.title} | Oldie but Goldie` : defaultTitle;
 
         // Generate description based on whether an order exists in Firebase
+        const priceSuffix = orderPriceStr ? ` Precio Base: ${orderPriceStr}` : "";
         const description = orderStatusStr
-            ? `Orden de ${title} generada en Oldie but Goldie. Estado: ${orderStatusStr}. Especialistas en formato físico.`
+            ? `Orden de ${title} generada en Oldie but Goldie. Estado: ${orderStatusStr}.${priceSuffix} Especialistas en formato físico.`
             : defaultDescription;
 
         // Ensure image is absolute and HTTPS. Discogs sometimes returns HTTP or missing images.

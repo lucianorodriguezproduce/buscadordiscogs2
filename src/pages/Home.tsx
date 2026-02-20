@@ -107,6 +107,7 @@ export default function Home() {
                                     format: orderData.details?.format,
                                     condition: orderData.details?.condition,
                                     intent: orderData.details?.intent,
+                                    price: orderData.price || null,
                                     timestamp: orderData.timestamp?.toDate() || new Date(),
                                     isOwner: auth.currentUser?.uid === orderData.user_id
                                 });
@@ -714,6 +715,10 @@ export default function Home() {
                                                 <p className="text-white font-mono">{publicOrder.timestamp.toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                                             </div>
                                             <div className="space-y-2">
+                                                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Precio Usuario</p>
+                                                <p className="text-primary font-bold font-mono text-lg">{publicOrder.price ? `$${publicOrder.price.toLocaleString('es-AR')}` : "A Confirmar"}</p>
+                                            </div>
+                                            <div className="space-y-2">
                                                 <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Formato</p>
                                                 <p className="text-white font-bold">{publicOrder.format || "N/A"}</p>
                                             </div>
@@ -734,14 +739,14 @@ export default function Home() {
                                                     className="w-full bg-primary text-black py-6 rounded-xl font-black uppercase text-xs tracking-widest shadow-[0_0_30px_rgba(204,255,0,0.15)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                                                 >
                                                     <MessageCircle className="w-4 h-4" />
-                                                    Completar mi Adquisición
+                                                    Contactar por esta orden
                                                 </button>
                                             ) : (
                                                 <button
                                                     onClick={() => setPublicOrder(null)} // Returns to standard step 1 logic
                                                     className="w-full bg-white/10 hover:bg-white/20 text-white py-6 rounded-xl font-black uppercase text-xs tracking-widest transition-all"
                                                 >
-                                                    Consultar por Ejemplar Similar
+                                                    Consultar similar
                                                 </button>
                                             )}
 

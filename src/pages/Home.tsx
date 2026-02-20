@@ -374,8 +374,8 @@ export default function Home() {
                         key="step1-search-container"
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        // Removed previous text-center gap logic and replaced with absolute flex architecture
-                        className={`w-full flex flex-col items-center justify-center ${isSearchActive ? 'h-full flex-1' : 'gap-12 md:gap-16 text-center'}`}
+                        // Fixed vertical alignment: justify-start ensures top alignment when active, removing the dead space above the header
+                        className={`w-full flex flex-col items-center ${isSearchActive ? 'h-full flex-1 justify-start' : 'justify-center gap-12 md:gap-16 text-center'}`}
                     >
                         {/* BLOQUE SUPERIOR (Header Fijo) */}
                         <div className={`w-full transition-all flex flex-col items-center ${isSearchActive ? 'flex-none shrink-0 z-10 bg-neutral-950 pt-[env(safe-area-inset-top,1rem)] md:pt-8 pb-4 px-4 border-b border-white/5 shadow-2xl' : ''}`}>
@@ -431,20 +431,22 @@ export default function Home() {
                                 />
                                 <AnimatePresence>
                                     {query && (
-                                        <motion.button
-                                            initial={{ opacity: 0, scale: 0.8 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.8 }}
-                                            onClick={() => {
-                                                setQuery("");
-                                                setIsSearchActive(false);
-                                                setSearchResults([]);
-                                                setHasMore(false);
-                                            }}
-                                            className="absolute right-6 md:right-8 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center"
-                                        >
-                                            <X className="h-5 md:h-6 w-5 md:w-6" />
-                                        </motion.button>
+                                        <div className="absolute right-4 md:right-6 top-0 bottom-0 flex items-center justify-center z-10">
+                                            <motion.button
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0, scale: 0.8 }}
+                                                onClick={() => {
+                                                    setQuery("");
+                                                    setIsSearchActive(false);
+                                                    setSearchResults([]);
+                                                    setHasMore(false);
+                                                }}
+                                                className="w-8 h-8 md:w-10 md:h-10 text-gray-400 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center"
+                                            >
+                                                <X className="h-4 md:h-5 w-4 md:w-5" />
+                                            </motion.button>
+                                        </div>
                                     )}
                                 </AnimatePresence>
                             </motion.div>

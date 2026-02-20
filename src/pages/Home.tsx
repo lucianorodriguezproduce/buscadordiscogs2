@@ -405,13 +405,14 @@ export default function Home() {
                                     initial={{ opacity: 0, y: 10, height: 0 }}
                                     animate={{ opacity: 1, y: 0, height: "auto" }}
                                     exit={{ opacity: 0, y: -10, height: 0 }}
-                                    className="flex items-center justify-center md:justify-start gap-3 overflow-x-auto pb-6 hide-scrollbar"
+                                    // Modified: Increased padding-bottom (pb-8) and added horizontal padding/negative margins to ensure full visibility while scrolling on mobile
+                                    className="flex items-center justify-start md:justify-center gap-3 overflow-x-auto pb-8 pt-2 px-4 -mx-4 md:px-0 md:mx-0 w-[calc(100%+2rem)] md:w-full hide-scrollbar snap-x"
                                 >
                                     {["todo", "artistas", "álbumes"].map((f) => (
                                         <button
                                             key={f}
                                             onClick={() => setSearchFilter(f as any)}
-                                            className={`px-8 py-3 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all border-2 ${searchFilter === f
+                                            className={`px-8 py-3 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all border-2 snap-center shrink-0 ${searchFilter === f
                                                 ? "bg-primary border-primary text-black shadow-[0_0_20px_rgba(204,255,0,0.3)]"
                                                 : "bg-transparent border-white/20 text-white hover:border-white/40 hover:bg-white/5"
                                                 }`}

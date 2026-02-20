@@ -11,13 +11,16 @@ import {
     Zap,
     Settings,
     Edit3,
-    Box,
+    ShoppingBag,
     TrendingUp,
     Trash2,
-    Search
+    Search,
+    DollarSign,
+    Clock,
+    Tag
 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query, orderBy, doc, deleteDoc } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, where, doc, deleteDoc } from "firebase/firestore";
 import { useState, useEffect } from "react";
 import { AlbumCardSkeleton } from "@/components/ui/Skeleton";
 import { Link } from "react-router-dom";
@@ -30,14 +33,34 @@ interface ProfileItem {
     addedAt: string;
 }
 
+interface OrderItem {
+    id: string;
+    item_id: number;
+    user_id: string;
+    status: string;
+    timestamp: any;
+    details: {
+        format: string;
+        condition: string;
+        intent: string;
+        artist: string;
+        album: string;
+        cover_image?: string;
+        price?: number;
+        currency?: string;
+    };
+}
+
 export default function Profile() {
     const { user, isAdmin } = useAuth();
-    const [activeTab, setActiveTab] = useState<"overview" | "archive" | "wantlist">("overview");
+    const [activeTab, setActiveTab] = useState<"overview" | "orders" | "wantlist">("overview");
 
     // Firestore Data State
     const [collectionItems, setCollectionItems] = useState<ProfileItem[]>([]);
     const [wantlistItems, setWantlistItems] = useState<ProfileItem[]>([]);
+    const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [ordersLoading, setOrdersLoading] = useState(true);
 
     useEffect(() => {
         if (!user) return;
@@ -61,9 +84,21 @@ export default function Profile() {
             setLoading(false);
         });
 
+        // Fetch Orders (from the global orders collection, filtered by user_id)
+        const qOrders = query(
+            collection(db, "orders"),
+            where("user_id", "==", user.uid),
+            orderBy("timestamp", "desc")
+        );
+        const unsubOrders = onSnapshot(qOrders, (snap) => {
+            setOrderItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as OrderItem)));
+            setOrdersLoading(false);
+        });
+
         return () => {
             unsubArchive();
             unsubWantlist();
+            unsubOrders();
         };
     }, [user]);
 
@@ -78,10 +113,31 @@ export default function Profile() {
     const photoURL = user?.photoURL;
 
     const stats = [
-        { label: "Colección", value: collectionItems.length.toString(), icon: Music, color: "text-primary" },
+        { label: "Pedidos", value: orderItems.length.toString(), icon: ShoppingBag, color: "text-primary" },
         { label: "Deseados", value: wantlistItems.length.toString(), icon: Heart, color: "text-red-500" },
         { label: "Nivel", value: "Elite", icon: Award, color: "text-yellow-500" },
     ];
+
+    const formatDate = (timestamp: any) => {
+        if (!timestamp) return "Reciente";
+        try {
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
+        } catch {
+            return "Reciente";
+        }
+    };
+
+    const getStatusBadge = (status: string) => {
+        const map: Record<string, { label: string; color: string }> = {
+            pending: { label: "Pendiente", color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" },
+            confirmed: { label: "Confirmado", color: "bg-primary/10 text-primary border-primary/20" },
+            completed: { label: "Completado", color: "bg-green-500/10 text-green-500 border-green-500/20" },
+            cancelled: { label: "Cancelado", color: "bg-red-500/10 text-red-500 border-red-500/20" },
+        };
+        const s = map[status] || map.pending;
+        return <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${s.color}`}>{s.label}</span>;
+    };
 
     return (
         <div className="space-y-16 py-10">
@@ -130,7 +186,7 @@ export default function Profile() {
             <div className="flex items-center justify-center md:justify-start gap-12 border-b border-white/5 pb-0">
                 {[
                     { id: "overview", label: "General", icon: Zap },
-                    { id: "archive", label: "Archivo", icon: Box },
+                    { id: "orders", label: "Pedidos", icon: ShoppingBag },
                     { id: "wantlist", label: "Deseados", icon: Heart },
                 ].map((tab) => (
                     <button
@@ -174,36 +230,154 @@ export default function Profile() {
                                 ))}
                             </div>
 
-                            {/* Recent Highlights inside Overview */}
+                            {/* Recent Orders in Overview */}
                             <div className="space-y-10">
-                                <h3 className="text-2xl font-display font-black text-white uppercase tracking-widest">Adquisiciones <span className="text-primary">Recientes</span></h3>
-                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                                    {(loading ? Array.from({ length: 6 }) : collectionItems.slice(0, 6)).map((item: any, i) => (
-                                        item ? (
-                                            <Link key={item.id} to={`/album/${item.id}`} className="group block">
-                                                <div className="aspect-square rounded-3xl overflow-hidden mb-3 relative ring-1 ring-white/5 group-hover:ring-primary/40 transition-all duration-500">
-                                                    <img src={item.cover_image} alt={item.title} className="w-full h-full object-cover grayscale-[0.5] group-hover:grayscale-0 transition-all duration-700" />
+                                <h3 className="text-2xl font-display font-black text-white uppercase tracking-widest">Pedidos <span className="text-primary">Recientes</span></h3>
+                                {ordersLoading ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                                        {Array.from({ length: 6 }).map((_, i) => <AlbumCardSkeleton key={i} />)}
+                                    </div>
+                                ) : orderItems.length === 0 ? (
+                                    <div className="py-20 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[3rem] space-y-6 text-center">
+                                        <ShoppingBag className="h-12 w-12 text-gray-700" />
+                                        <div className="space-y-2">
+                                            <p className="text-xl font-display font-medium text-gray-500">No tienes pedidos aún.</p>
+                                            <Link to="/" className="text-primary font-black uppercase tracking-widest text-[10px] hover:underline underline-offset-8">Buscar tu primer disco</Link>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {orderItems.slice(0, 5).map((order, i) => (
+                                            <motion.div
+                                                key={order.id}
+                                                initial={{ opacity: 0, x: -20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: i * 0.05 }}
+                                                className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 flex items-center gap-6 hover:border-primary/20 transition-all group"
+                                            >
+                                                {order.details.cover_image && (
+                                                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5 flex-shrink-0 border border-white/10">
+                                                        <img src={order.details.cover_image} alt="" className="w-full h-full object-cover" />
+                                                    </div>
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-white font-bold truncate">{order.details.artist} - {order.details.album}</h4>
+                                                    <div className="flex flex-wrap items-center gap-3 mt-2">
+                                                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${order.details.intent === "COMPRAR" ? "bg-blue-500/10 text-blue-400" : "bg-green-500/10 text-green-400"}`}>
+                                                            {order.details.intent}
+                                                        </span>
+                                                        <span className="text-gray-600 text-[10px] font-bold">{order.details.format} • {order.details.condition}</span>
+                                                        {order.details.price && (
+                                                            <span className="text-primary text-xs font-black">
+                                                                {order.details.currency === "USD" ? "US$" : "$"}{order.details.price.toLocaleString()}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <h4 className="text-white font-bold text-[11px] truncate">{item.title}</h4>
-                                            </Link>
-                                        ) : (
-                                            <AlbumCardSkeleton key={i} />
-                                        )
-                                    ))}
-                                </div>
+                                                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                                                    {getStatusBadge(order.status)}
+                                                    <span className="text-gray-700 text-[9px] font-bold flex items-center gap-1">
+                                                        <Clock className="h-3 w-3" /> {formatDate(order.timestamp)}
+                                                    </span>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
 
-                    {(activeTab === "archive" || activeTab === "wantlist") && (
+                    {activeTab === "orders" && (
                         <div className="space-y-10">
                             <div className="flex items-end justify-between">
                                 <div>
                                     <h2 className="text-4xl font-display font-black text-white tracking-tightest leading-none">
-                                        {activeTab === "archive" ? "Archivo" : "Lista de"} <span className="text-primary">{activeTab === "archive" ? "Personal" : "Deseados"}</span>
+                                        Mis <span className="text-primary">Pedidos</span>
                                     </h2>
                                     <p className="text-gray-500 mt-4 text-lg font-medium">
-                                        {activeTab === "archive" ? "Gestionando tu biblioteca física verificada." : "Siguiendo adquisiciones de alto valor."}
+                                        Historial de intenciones de compra y venta registradas.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {ordersLoading ? (
+                                <div className="space-y-4">
+                                    {Array.from({ length: 4 }).map((_, i) => (
+                                        <div key={i} className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 h-24 animate-pulse" />
+                                    ))}
+                                </div>
+                            ) : orderItems.length === 0 ? (
+                                <div className="col-span-full py-40 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[3rem] space-y-6 text-center">
+                                    <ShoppingBag className="h-12 w-12 text-gray-700" />
+                                    <div className="space-y-2">
+                                        <p className="text-xl font-display font-medium text-gray-500">No se detectaron pedidos en este sector.</p>
+                                        <Link to="/" className="text-primary font-black uppercase tracking-widest text-[10px] hover:underline underline-offset-8">Iniciar Búsqueda de Disco</Link>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {orderItems.map((order, i) => (
+                                        <motion.div
+                                            key={order.id}
+                                            initial={{ opacity: 0, y: 15 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: i * 0.04 }}
+                                            className="bg-white/[0.03] border border-white/5 rounded-[1.5rem] p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-6 hover:border-primary/20 transition-all group"
+                                        >
+                                            {order.details.cover_image ? (
+                                                <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden bg-white/5 flex-shrink-0 border border-white/10 group-hover:border-primary/30 transition-all">
+                                                    <img src={order.details.cover_image} alt="" className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-500" />
+                                                </div>
+                                            ) : (
+                                                <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white/5 flex-shrink-0 border border-white/10 flex items-center justify-center">
+                                                    <Music className="h-8 w-8 text-gray-700" />
+                                                </div>
+                                            )}
+
+                                            <div className="flex-1 min-w-0 space-y-3">
+                                                <h4 className="text-lg md:text-xl font-display font-black text-white uppercase tracking-tight truncate group-hover:text-primary transition-colors">
+                                                    {order.details.artist} — {order.details.album}
+                                                </h4>
+                                                <div className="flex flex-wrap items-center gap-3">
+                                                    <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border ${order.details.intent === "COMPRAR" ? "bg-blue-500/10 text-blue-400 border-blue-500/20" : "bg-green-500/10 text-green-400 border-green-500/20"}`}>
+                                                        {order.details.intent}
+                                                    </span>
+                                                    <span className="flex items-center gap-1 text-gray-500 text-[10px] font-black uppercase">
+                                                        <Tag className="h-3 w-3" /> {order.details.format}
+                                                    </span>
+                                                    <span className="text-gray-600 text-[10px] font-bold uppercase">{order.details.condition}</span>
+                                                    {order.details.price && (
+                                                        <span className="flex items-center gap-1 text-primary text-sm font-black">
+                                                            <DollarSign className="h-3.5 w-3.5" />
+                                                            {order.details.currency === "USD" ? "US$" : "$"}{order.details.price.toLocaleString()}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col items-start md:items-end gap-3 flex-shrink-0">
+                                                {getStatusBadge(order.status)}
+                                                <span className="text-gray-700 text-[10px] font-bold flex items-center gap-1.5">
+                                                    <Clock className="h-3.5 w-3.5" /> {formatDate(order.timestamp)}
+                                                </span>
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {activeTab === "wantlist" && (
+                        <div className="space-y-10">
+                            <div className="flex items-end justify-between">
+                                <div>
+                                    <h2 className="text-4xl font-display font-black text-white tracking-tightest leading-none">
+                                        Lista de <span className="text-primary">Deseados</span>
+                                    </h2>
+                                    <p className="text-gray-500 mt-4 text-lg font-medium">
+                                        Siguiendo adquisiciones de alto valor.
                                     </p>
                                 </div>
                             </div>
@@ -211,7 +385,7 @@ export default function Profile() {
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8">
                                 {loading ? (
                                     Array.from({ length: 12 }).map((_, i) => <AlbumCardSkeleton key={i} />)
-                                ) : (activeTab === "archive" ? collectionItems : wantlistItems).length === 0 ? (
+                                ) : wantlistItems.length === 0 ? (
                                     <div className="col-span-full py-40 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-[3rem] space-y-6 text-center">
                                         <Search className="h-12 w-12 text-gray-700" />
                                         <div className="space-y-2">
@@ -220,7 +394,7 @@ export default function Profile() {
                                         </div>
                                     </div>
                                 ) : (
-                                    (activeTab === "archive" ? collectionItems : wantlistItems).map((item, i) => (
+                                    wantlistItems.map((item, i) => (
                                         <motion.div
                                             key={item.id}
                                             initial={{ opacity: 0, scale: 0.9 }}
@@ -238,7 +412,7 @@ export default function Profile() {
                                                 <h3 className="text-white font-bold text-xs truncate group-hover:text-primary transition-colors">{item.title}</h3>
                                             </Link>
                                             <button
-                                                onClick={() => removeItem(activeTab === "archive" ? "collection" : "wantlist", item.id)}
+                                                onClick={() => removeItem("wantlist", item.id)}
                                                 className="absolute top-4 right-4 p-2 bg-red-500/10 text-red-500 rounded-xl opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:text-white transition-all border border-red-500/20 backdrop-blur-xl"
                                             >
                                                 <Trash2 className="h-3.5 w-3.5" />
@@ -254,4 +428,3 @@ export default function Profile() {
         </div>
     );
 }
-

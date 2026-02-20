@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ChevronRight, CheckCircle2, Mail, Layers } from "lucide-react";
+import { Search, ChevronRight, CheckCircle2, Mail, Layers, DollarSign } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 type Intent = "COMPRAR" | "VENDER";
 type Format = "CD" | "VINILO" | "CASSETTE" | "OTROS";
 type Condition = "NUEVO" | "USADO";
+type Currency = "ARS" | "USD";
 
 export default function Home() {
     const { user } = useAuth();
@@ -22,6 +23,10 @@ export default function Home() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [step, setStep] = useState(1);
+
+    // Sell-specific states
+    const [price, setPrice] = useState("");
+    const [currency, setCurrency] = useState<Currency>("ARS");
 
     const [searchResults, setSearchResults] = useState<DiscogsSearchResult[]>([]);
     const [isLoadingSearch, setIsLoadingSearch] = useState(false);
@@ -97,16 +102,18 @@ export default function Home() {
         setFormat(null);
         setCondition(null);
         setIntent(null);
+        setPrice("");
+        setCurrency("ARS");
         setSearchResults([]);
         setShowDropdown(false);
         setHasMore(false);
         setStep(1);
     };
 
-    const performSubmission = async (uid: string) => {
-        if (!selectedItem || !format || !condition || !intent) return;
+    const buildOrderPayload = (uid: string) => {
+        if (!selectedItem || !format || !condition || !intent) return null;
 
-        await addDoc(collection(db, "orders"), {
+        const payload: any = {
             user_id: uid,
             item_id: selectedItem.id,
             details: {
@@ -115,10 +122,78 @@ export default function Home() {
                 intent,
                 artist: selectedItem.title.split(' - ')[0],
                 album: selectedItem.title.split(' - ')[1] || selectedItem.title,
+                cover_image: selectedItem.cover_image || selectedItem.thumb || '',
             },
             timestamp: serverTimestamp(),
             status: 'pending'
-        });
+        };
+
+        // Add pricing info for VENDER orders
+        if (intent === "VENDER" && price) {
+            payload.details.price = parseFloat(price);
+            payload.details.currency = currency;
+        }
+
+        return payload;
+    };
+
+    const performSubmission = async (uid: string) => {
+        const payload = buildOrderPayload(uid);
+        if (!payload) return;
+        await addDoc(collection(db, "orders"), payload);
+    };
+
+    // Handle intent selection — if user is logged in, skip auth
+    const handleIntentSelect = async (selectedIntent: Intent) => {
+        setIntent(selectedIntent);
+
+        // For VENDER, go to pricing step first
+        if (selectedIntent === "VENDER") {
+            setStep(2); // price step
+            return;
+        }
+
+        // For COMPRAR: if already logged in, submit directly
+        if (user) {
+            setIsSubmitting(true);
+            try {
+                await performSubmission(user.uid);
+                setIsSuccess(true);
+                scrollToTop();
+            } catch (error) {
+                console.error("Submission error:", error);
+                alert("Error al procesar el pedido.");
+            } finally {
+                setIsSubmitting(false);
+            }
+        } else {
+            setStep(3); // auth step
+        }
+    };
+
+    // Handle price confirmation for VENDER
+    const handlePriceConfirm = async () => {
+        if (!price || parseFloat(price) <= 0) {
+            alert("Ingresa un precio válido.");
+            return;
+        }
+
+        // If already logged in, submit directly
+        if (user) {
+            setIsSubmitting(true);
+            try {
+                await performSubmission(user.uid);
+                setIsSuccess(true);
+                scrollToTop();
+            } catch (error) {
+                console.error("Submission error:", error);
+                alert("Error al procesar el pedido.");
+            } finally {
+                setIsSubmitting(false);
+            }
+        } else {
+            setStep(3); // auth step
+        }
     };
 
     const handleGoogleSignIn = async () => {
@@ -262,7 +337,7 @@ export default function Home() {
                             <h2 className="text-3xl md:text-5xl font-display font-black text-white uppercase tracking-tighter">Detalle de Obra</h2>
                         </header>
 
-                        {/* Selection Card: Context for ALL steps */}
+                        {/* Selection Card */}
                         <div className="bg-[#050505] border-2 border-primary rounded-[1.5rem] md:rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(204,255,0,0.12)] group relative w-full">
                             <div className="flex flex-col md:flex-row">
                                 <div className="w-full md:w-2/5 aspect-square relative overflow-hidden">
@@ -290,6 +365,7 @@ export default function Home() {
                             </div>
                         </div>
 
+                        {/* Step 1: Format, Condition, Intent */}
                         {step === 1 && (
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
@@ -329,13 +405,14 @@ export default function Home() {
                                 {format && condition && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-8 border-t border-white/5">
                                         <button
-                                            onClick={() => { setIntent("COMPRAR"); setStep(2); }}
-                                            className="bg-white/10 hover:bg-primary hover:text-black py-8 rounded-[1.5rem] font-black uppercase tracking-tighter text-2xl md:text-3xl transition-all"
+                                            onClick={() => handleIntentSelect("COMPRAR")}
+                                            disabled={isSubmitting}
+                                            className="bg-white/10 hover:bg-primary hover:text-black py-8 rounded-[1.5rem] font-black uppercase tracking-tighter text-2xl md:text-3xl transition-all disabled:opacity-50"
                                         >
-                                            Comprar
+                                            {isSubmitting && intent === "COMPRAR" ? "Procesando..." : "Comprar"}
                                         </button>
                                         <button
-                                            onClick={() => { setIntent("VENDER"); setStep(2); }}
+                                            onClick={() => handleIntentSelect("VENDER")}
                                             className="bg-white/10 hover:bg-primary hover:text-black py-8 rounded-[1.5rem] font-black uppercase tracking-tighter text-2xl md:text-3xl transition-all"
                                         >
                                             Vender
@@ -345,7 +422,68 @@ export default function Home() {
                             </motion.div>
                         )}
 
-                        {step === 2 && (
+                        {/* Step 2: (VENDER only) Price & Currency */}
+                        {step === 2 && intent === "VENDER" && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="bg-[#0A0A0A] border-2 border-primary/40 rounded-[2rem] p-8 md:p-12 space-y-10 shadow-2xl"
+                            >
+                                <div className="text-center space-y-4">
+                                    <h3 className="text-3xl md:text-4xl font-display font-black text-white uppercase tracking-tighter">Precio de Venta</h3>
+                                    <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest italic">Establecer valor de mercado para tu pieza</p>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <label className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500 italic block px-4"> [ 03 ] Moneda </label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {(["ARS", "USD"] as Currency[]).map(c => (
+                                            <button
+                                                key={c}
+                                                onClick={() => setCurrency(c)}
+                                                className={`py-5 rounded-2xl text-xs font-black tracking-widest border-2 transition-all flex items-center justify-center gap-2 ${currency === c ? 'bg-primary border-primary text-black' : 'bg-white/5 border-white/5 text-gray-500'}`}
+                                            >
+                                                <DollarSign className="h-4 w-4" />
+                                                {c === "ARS" ? "Pesos Argentinos" : "Dólares USD"}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <label className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500 italic block px-4"> [ 04 ] Precio </label>
+                                    <div className="relative">
+                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-500 font-black text-lg">
+                                            {currency === "ARS" ? "$" : "US$"}
+                                        </span>
+                                        <input
+                                            id="sell_price"
+                                            name="price"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={price}
+                                            onChange={e => setPrice(e.target.value)}
+                                            placeholder="0.00"
+                                            className="w-full bg-white/5 border-2 border-white/5 rounded-2xl py-6 pl-16 pr-8 text-white text-2xl font-black focus:border-primary/40 focus:outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={handlePriceConfirm}
+                                    disabled={isSubmitting || !price}
+                                    className="w-full bg-primary text-black py-8 rounded-2xl font-black uppercase text-xs tracking-widest shadow-[0_0_40px_rgba(204,255,0,0.2)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+                                >
+                                    {isSubmitting ? "PROCESANDO..." : "CONFIRMAR PRECIO Y PUBLICAR"}
+                                </button>
+
+                                <button onClick={() => { setIntent(null); setStep(1); }} className="w-full text-[10px] font-black uppercase text-gray-700 hover:text-white transition-colors">Atrás</button>
+                            </motion.div>
+                        )}
+
+                        {/* Step 3: Auth (only if NOT logged in) */}
+                        {step === 3 && (
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -405,7 +543,7 @@ export default function Home() {
                                         </button>
                                     </form>
 
-                                    <button onClick={() => setStep(1)} className="w-full text-[10px] font-black uppercase text-gray-700 hover:text-white transition-colors">Atrás</button>
+                                    <button onClick={() => setStep(intent === "VENDER" ? 2 : 1)} className="w-full text-[10px] font-black uppercase text-gray-700 hover:text-white transition-colors">Atrás</button>
                                 </div>
                             </motion.div>
                         )}

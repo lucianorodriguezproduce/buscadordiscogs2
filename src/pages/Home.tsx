@@ -362,9 +362,12 @@ export default function Home() {
         }
 
         // Attach market reference for margin analysis
-        payload.market_reference = marketPrice;
+        if (marketPrice !== null && marketPrice !== undefined) {
+            payload.market_reference = marketPrice;
+        }
 
-        return payload;
+        // Deep clean undefined values to prevent Firebase addDoc 400 errors
+        return JSON.parse(JSON.stringify(payload));
     };
 
     const performSubmission = async (uid: string, intentOverride?: Intent) => {

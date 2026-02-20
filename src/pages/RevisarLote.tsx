@@ -61,8 +61,11 @@ export default function RevisarLote() {
             }))
         };
 
-        await addDoc(collection(db, "orders"), payload);
-        setSubmittedOrder(payload);
+        // Sanitize object to remove undefined values before sending to Firebase
+        const cleanPayload = JSON.parse(JSON.stringify(payload));
+
+        await addDoc(collection(db, "orders"), cleanPayload);
+        setSubmittedOrder(cleanPayload);
         clearLote();
     };
 
@@ -207,8 +210,8 @@ export default function RevisarLote() {
                                     <h4 className="text-white font-bold truncate leading-tight">{item.title}</h4>
                                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                                         <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${item.intent === 'COMPRAR'
-                                                ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                                                : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                            ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                            : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                                             }`}>
                                             {item.intent}
                                         </span>

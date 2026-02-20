@@ -1,5 +1,2 @@
 User-agent: *
-Allow: /
-Disallow: /admin
-
-Sitemap: https://oldie-but-goldie.vercel.app/sitemap.xml
+Disallow: /

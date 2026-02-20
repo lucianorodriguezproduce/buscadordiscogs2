@@ -19,6 +19,9 @@ export function SEO({
 }: SEOProps) {
     const currentUrl = url || (typeof window !== 'undefined' ? window.location.href : 'https://oldie-but-goldie.vercel.app');
 
+    // Make sure image is an absolute HTTPS URL if it isn't already
+    const ogImage = image.startsWith('http') ? image : `https://oldie-but-goldie.vercel.app${image.startsWith('/') ? '' : '/'}${image}`;
+
     const defaultSchema = {
         "@context": "https://schema.org",
         "@type": "OnlineStore",
@@ -38,19 +41,22 @@ export function SEO({
             <meta name="description" content={description} />
             <link rel="canonical" href={currentUrl} />
 
+            {/* Robots directive for staging */}
+            <meta name="robots" content="noindex, nofollow" />
+
             {/* Open Graph / Facebook */}
             <meta property="og:type" content={type} />
             <meta property="og:url" content={currentUrl} />
             <meta property="og:title" content={title} />
             <meta property="og:description" content={description} />
-            <meta property="og:image" content={image} />
+            <meta property="og:image" content={ogImage} />
 
             {/* Twitter */}
             <meta name="twitter:card" content="summary_large_image" />
             <meta name="twitter:url" content={currentUrl} />
             <meta name="twitter:title" content={title} />
             <meta name="twitter:description" content={description} />
-            <meta name="twitter:image" content={image} />
+            <meta name="twitter:image" content={ogImage} />
 
             {/* JSON-LD Structured Data */}
             <script type="application/ld+json">

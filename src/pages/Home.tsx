@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ChevronRight, CheckCircle2, Mail, Layers, DollarSign, TrendingUp, MessageCircle, X } from "lucide-react";
+import { Search, ChevronRight, CheckCircle2, Mail, Layers, DollarSign, TrendingUp, MessageCircle, X, Share } from "lucide-react";
 import { db, auth } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp, query as firestoreQuery, where, getDocs, limit } from "firebase/firestore";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -238,6 +238,32 @@ export default function Home() {
         // Clean URL if we are coming from a dynamic route
         if (routeId) {
             navigate('/', { replace: true });
+        }
+    };
+
+    const handleShare = async () => {
+        if (!selectedItem) return;
+
+        const artist = selectedItem.title.split(' - ')[0];
+        const album = selectedItem.title.split(' - ')[1] || selectedItem.title;
+        const text = `Mira este hallazgo en Oldie but Goldie: ${album} de ${artist}. ¿Qué te parece?`;
+
+        // Use the absolute URL of the item
+        const url = `${window.location.origin}/item/${selectedItem.type}/${selectedItem.id}`;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Oldie but Goldie',
+                    text: text,
+                    url: url,
+                });
+            } catch (error) {
+                console.error('Error sharing:', error);
+            }
+        } else {
+            navigator.clipboard.writeText(`${text} ${url}`);
+            alert('Enlace copiado al portapapeles');
         }
     };
 
@@ -674,7 +700,15 @@ export default function Home() {
                         {/* Collector Receipt View Extracted Logic */}
                         {publicOrder ? (
                             <div className="bg-[#050505] border-2 border-white/5 rounded-[1.5rem] md:rounded-[3rem] overflow-hidden group relative w-full shadow-2xl">
-                                <div className="absolute top-0 right-0 p-8 z-10">
+                                <div className="absolute top-0 right-0 p-8 z-30 flex items-center gap-3">
+                                    <button
+                                        onClick={handleShare}
+                                        className="h-10 px-4 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-md flex items-center justify-center gap-2 transition-all group"
+                                        title="Compartir"
+                                    >
+                                        <Share className="h-4 w-4 text-gray-300 group-hover:text-white transition-colors" />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-300 group-hover:text-white transition-colors hidden sm:block">Compartir</span>
+                                    </button>
                                     <div className={`px-4 py-2 rounded-full border backdrop-blur-md flex items-center gap-2 ${publicOrder.status === 'sold' ? 'bg-primary/10 border-primary/20 text-primary' :
                                         publicOrder.status === 'quoted' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
                                             'bg-white/5 border-white/10 text-gray-300'
@@ -774,8 +808,18 @@ export default function Home() {
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent" />
                                     </div>
-                                    <div className="flex-1 p-8 md:p-12 space-y-8 flex flex-col justify-center">
-                                        <h3 className="text-3xl lg:text-4xl font-display font-black text-white uppercase tracking-tighter leading-none">{selectedItem.title}</h3>
+                                    <div className="flex-1 p-8 md:p-12 space-y-8 flex flex-col justify-center relative">
+                                        <div className="absolute top-6 md:top-8 right-6 md:right-8 z-10">
+                                            <button
+                                                onClick={handleShare}
+                                                className="h-10 px-4 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 backdrop-blur-md flex items-center justify-center gap-2 transition-all group"
+                                                title="Compartir"
+                                            >
+                                                <Share className="h-4 w-4 text-gray-300 group-hover:text-white transition-colors" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-300 group-hover:text-white transition-colors hidden sm:block">Compartir</span>
+                                            </button>
+                                        </div>
+                                        <h3 className="text-3xl lg:text-4xl font-display font-black text-white uppercase tracking-tighter leading-none mt-4 md:mt-0">{selectedItem.title}</h3>
                                         <div className="grid grid-cols-2 gap-6">
                                             <div>
                                                 <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Año</p>

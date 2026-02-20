@@ -123,7 +123,7 @@ export default function NotificationBell() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -8, scale: 0.95 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute right-0 top-full mt-3 w-[340px] bg-[#0A0A0A] border border-white/10 rounded-2xl overflow-hidden z-[60] shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
+                        className="fixed left-4 right-4 top-[72px] md:absolute md:left-auto md:right-0 md:top-full md:mt-3 md:w-[360px] bg-[#0A0A0A] border border-white/10 rounded-2xl overflow-hidden z-[60] shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
@@ -156,8 +156,8 @@ export default function NotificationBell() {
                                         key={notif.id}
                                         onClick={() => !notif.read && markAsRead(notif.id)}
                                         className={`w-full text-left px-5 py-4 flex items-start gap-3 transition-all border-b border-white/[0.03] last:border-0 ${notif.read
-                                                ? "opacity-50 hover:opacity-70"
-                                                : "bg-primary/[0.03] hover:bg-primary/[0.06]"
+                                            ? "opacity-50 hover:opacity-70"
+                                            : "bg-primary/[0.03] hover:bg-primary/[0.06]"
                                             }`}
                                     >
                                         {/* Unread indicator */}

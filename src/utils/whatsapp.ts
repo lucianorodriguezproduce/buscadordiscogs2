@@ -1,4 +1,5 @@
 export interface OrderData {
+    id?: string;
     order_number?: string;
     item_id?: number | string;
     type?: string;
@@ -61,6 +62,10 @@ export const generateWhatsAppLink = (order: OrderData): string => {
     } else if (!order.isBatch && order.details.price) {
         const currency = order.details.currency === "USD" ? "US$" : "$";
         message += `\nPrecio Sugerido: ${currency} ${order.details.price.toLocaleString()}`;
+    }
+
+    if (order.id) {
+        message += `\n\nLink de mi lote: https://buscadordiscogs-mslb.vercel.app/orden/${order.id}`;
     }
 
     const encodedMessage = encodeURIComponent(message);

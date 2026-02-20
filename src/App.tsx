@@ -8,6 +8,7 @@ import Layout from "@/components/Layout/Layout";
 import Login from "@/pages/Login";
 import Home from "@/pages/Home";
 import PublicOrders from "@/pages/PublicOrders";
+import PublicOrderView from "@/pages/PublicOrderView";
 import AlbumDetail from "@/pages/AlbumDetail";
 import Editorial from "@/pages/Editorial";
 import ArticleDetail from "@/pages/ArticleDetail";
@@ -38,6 +39,7 @@ function AppContent() {
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/actividad" element={<PublicOrders />} />
+          <Route path="/orden/:id" element={<PublicOrderView />} />
           <Route path="/revisar-lote" element={<RevisarLote />} />
           <Route path="/item/:type/:id" element={<Home />} />
           <Route path="/login" element={<Login />} />

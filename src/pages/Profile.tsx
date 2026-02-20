@@ -410,6 +410,13 @@ export default function Profile() {
                                                     <span className="text-gray-700 text-[10px] font-bold flex items-center gap-1.5">
                                                         <Clock className="h-3.5 w-3.5" /> {formatDate(order.timestamp)}
                                                     </span>
+                                                    <Link
+                                                        to={`/orden/${order.id}`}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="mt-1 px-4 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-white transition-colors flex items-center gap-2"
+                                                    >
+                                                        <Search className="w-3 h-3" /> Ver Detalle Público
+                                                    </Link>
                                                 </div>
                                             </div>
 
@@ -590,6 +597,13 @@ export default function Profile() {
                             <Clock className="h-3.5 w-3.5" />
                             {formatDate(selectedOrder.timestamp)}
                         </div>
+
+                        <Link
+                            to={`/orden/${selectedOrder.id}`}
+                            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-white/5 hover:bg-white/10 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border border-white/10 mt-6"
+                        >
+                            <Search className="h-4 w-4" /> Link Público del Lote
+                        </Link>
                     </>
                 )}
             </OrderDetailsDrawer>

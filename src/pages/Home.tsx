@@ -341,6 +341,7 @@ export default function Home() {
             user_email: currentUser?.email || "Sin email",
             user_name: currentUser?.displayName || "Usuario Registrado",
             user_photo: currentUser?.photoURL || "",
+            thumbnailUrl: selectedItem?.cover_image || selectedItem?.thumb || '',
             order_number: generateOrderNumber(),
             item_id: selectedItem.id,
             details: {

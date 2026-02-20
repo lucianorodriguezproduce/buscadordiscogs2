@@ -36,6 +36,7 @@ export default function RevisarLote() {
             user_email: currentUser?.email || "Sin email",
             user_name: currentUser?.displayName || "Usuario Registrado",
             user_photo: currentUser?.photoURL || "",
+            thumbnailUrl: loteItems[0]?.cover_image || "",
             order_number: generateOrderNumber(),
             isBatch: true,
             status: 'pending',

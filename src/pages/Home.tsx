@@ -374,7 +374,8 @@ export default function Home() {
                         key="step1-search-container"
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="w-full space-y-12 text-center"
+                        // Using flex to strictly control vertical gaps dynamically without relying on static margins
+                        className={`w-full flex items-center flex-col text-center ${isSearchActive ? 'gap-0 md:gap-2' : 'gap-12 md:gap-16'}`}
                     >
                         <AnimatePresence mode="wait">
                             {!isSearchActive ? (
@@ -408,7 +409,7 @@ export default function Home() {
                             )}
                         </AnimatePresence>
 
-                        <motion.div layout className="relative group w-full mb-4 md:mb-6">
+                        <motion.div layout className="relative group w-full flex items-center justify-center">
                             <Search className="absolute left-6 md:left-8 top-1/2 -translate-y-1/2 h-5 md:h-6 w-5 md:w-6 text-gray-500 group-focus-within:text-primary transition-colors" />
                             <input
                                 id="searchQuery"
@@ -438,7 +439,7 @@ export default function Home() {
                                             setSearchResults([]);
                                             setHasMore(false);
                                         }}
-                                        className="absolute right-6 md:right-8 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full"
+                                        className="absolute right-6 md:right-8 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center"
                                     >
                                         <X className="h-5 md:h-6 w-5 md:w-6" />
                                     </motion.button>

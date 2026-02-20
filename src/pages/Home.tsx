@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ChevronRight, CheckCircle2, Mail, Layers, DollarSign, TrendingUp, MessageCircle, X } from "lucide-react";
 import { db, auth } from "@/lib/firebase";
@@ -45,6 +45,7 @@ export default function Home() {
     const [password, setPassword] = useState("");
 
     const debouncedQuery = useDebounce(query, 500);
+    const resultsContainerRef = useRef<HTMLDivElement>(null);
 
     const scrollToTop = () => {
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -54,6 +55,16 @@ export default function Home() {
     useEffect(() => {
         scrollToTop();
     }, [step, selectedItem]);
+
+    // Auto-scroll logic for results container (Mobile Keyboard Fix)
+    useEffect(() => {
+        if (isSearchActive && searchResults.length > 0 && resultsContainerRef.current) {
+            // Slight delay to ensure DOM is ready and keyboard has settled on iOS
+            setTimeout(() => {
+                resultsContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 100);
+        }
+    }, [searchResults, isSearchActive]);
 
     // Effect for real-time Discogs search
     useEffect(() => {
@@ -102,29 +113,36 @@ export default function Home() {
         }
     };
 
-    const handleSelectResult = (result: DiscogsSearchResult) => {
-        if (result.type === "artist") {
-            handleArtistClick(result.id, result.title);
+    const handleEntityDrillDown = async (result: DiscogsSearchResult) => {
+        if (result.type === "release") {
+            setSelectedItem(result);
+            setIsSearchActive(false);
             return;
         }
-        setSelectedItem(result);
-        setIsSearchActive(false);
-    };
 
-    const handleArtistClick = async (artistId: number, artistName: string) => {
         setIsLoadingSearch(true);
-        // Force the filter visual state to 'álbumes'
+        // Force the filter visual state to 'álbumes' as we dive into entities' discographies
         setSearchFilter("álbumes");
-        // Re-brand the input query text to denote the user is now browsing this artist
-        setQuery(artistName);
+        // Re-brand the input query text to denote the user is now browsing this entity
+        setQuery(result.title);
 
         try {
-            const { results, pagination } = await discogsService.getArtistReleases(artistId.toString(), 1);
-            setSearchResults(results);
-            setHasMore(pagination?.pages > 1);
-            setCurrentPage(1);
+            let drillDownData;
+            if (result.type === "artist") {
+                drillDownData = await discogsService.getArtistReleases(result.id.toString(), 1);
+            } else if (result.type === "label") {
+                drillDownData = await discogsService.getLabelReleases(result.id.toString(), 1);
+            } else if (result.type === "master") {
+                drillDownData = await discogsService.getMasterVersions(result.id.toString(), 1);
+            }
+
+            if (drillDownData) {
+                setSearchResults(drillDownData.results);
+                setHasMore(drillDownData.pagination?.pages > 1);
+                setCurrentPage(1);
+            }
         } catch (error) {
-            console.error("Artist drill-down error:", error);
+            console.error("Entity drill-down error:", error);
         } finally {
             setIsLoadingSearch(false);
         }
@@ -450,10 +468,12 @@ export default function Home() {
                         <AnimatePresence>
                             {isSearchActive && searchResults.length > 0 && (
                                 <motion.div
+                                    ref={resultsContainerRef}
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
-                                    className="space-y-4 text-left mt-4"
+                                    // Massive padding bottom ensures the last item is never hidden behind the mobile keyboard
+                                    className="space-y-4 text-left mt-4 pb-64 md:pb-8"
                                 >
                                     {searchResults.map((result, i) => (
                                         <motion.button
@@ -462,7 +482,7 @@ export default function Home() {
                                             transition={{ delay: i * 0.05 }}
                                             key={`${result.id}-${result.type}`}
                                             type="button"
-                                            onClick={() => handleSelectResult(result)}
+                                            onClick={() => handleEntityDrillDown(result)}
                                             className="w-full relative overflow-hidden bg-white/[0.03] border-2 border-white/10 rounded-2xl md:rounded-[2rem] hover:border-primary/40 transition-all group active:scale-[0.98]"
                                         >
                                             <div className="absolute left-0 top-0 bottom-0 w-2 bg-transparent group-hover:bg-primary transition-colors" />

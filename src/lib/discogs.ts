@@ -82,6 +82,50 @@ export const discogsService = {
         return { results: mappedResults, pagination: data.pagination };
     },
 
+    async getLabelReleases(labelId: string, page: number = 1): Promise<{ results: DiscogsSearchResult[], pagination: any }> {
+        const params: Record<string, string> = {
+            sort: "year",
+            sort_order: "desc",
+            per_page: "10",
+            page: page.toString(),
+        };
+        const data = await fetchFromDiscogs(`/labels/${labelId}/releases`, params);
+        const mappedResults = (data.releases || []).map((r: any) => ({
+            id: r.id,
+            title: r.artist ? `${r.artist} - ${r.title}` : r.title,
+            cover_image: r.thumb,
+            thumb: r.thumb,
+            year: r.year?.toString() || "",
+            type: "release",
+            uri: r.resource_url,
+            resource_url: r.resource_url
+        }));
+
+        return { results: mappedResults, pagination: data.pagination };
+    },
+
+    async getMasterVersions(masterId: string, page: number = 1): Promise<{ results: DiscogsSearchResult[], pagination: any }> {
+        const params: Record<string, string> = {
+            sort: "released",
+            sort_order: "desc",
+            per_page: "10",
+            page: page.toString(),
+        };
+        const data = await fetchFromDiscogs(`/masters/${masterId}/versions`, params);
+        const mappedResults = (data.versions || []).map((v: any) => ({
+            id: v.id,
+            title: v.title,
+            cover_image: v.thumb,
+            thumb: v.thumb,
+            year: v.released || "",
+            type: "release", // versions are releases
+            uri: v.resource_url,
+            resource_url: v.resource_url
+        }));
+
+        return { results: mappedResults, pagination: data.pagination };
+    },
+
     async getTrending(genre?: string): Promise<DiscogsSearchResult[]> {
         const params: Record<string, string> = {
             genre: genre || "Electronic",

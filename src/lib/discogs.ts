@@ -59,6 +59,29 @@ export const discogsService = {
         return fetchFromDiscogs(`/masters/${id}`);
     },
 
+    async getArtistReleases(artistId: string, page: number = 1): Promise<{ results: DiscogsSearchResult[], pagination: any }> {
+        const params: Record<string, string> = {
+            sort: "year",
+            sort_order: "desc",
+            per_page: "10",
+            page: page.toString(),
+        };
+        const data = await fetchFromDiscogs(`/artists/${artistId}/releases`, params);
+        // Artist releases endpoint has a slightly different format, we map it to match DiscogsSearchResult
+        const mappedResults = (data.releases || []).map((r: any) => ({
+            id: r.id,
+            title: `${r.artist || r.role} - ${r.title}`, // Best effort to keep consistency
+            cover_image: r.thumb,
+            thumb: r.thumb,
+            year: r.year?.toString() || "",
+            type: r.type || "release",
+            uri: r.resource_url,
+            resource_url: r.resource_url
+        }));
+
+        return { results: mappedResults, pagination: data.pagination };
+    },
+
     async getTrending(genre?: string): Promise<DiscogsSearchResult[]> {
         const params: Record<string, string> = {
             genre: genre || "Electronic",

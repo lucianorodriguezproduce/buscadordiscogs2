@@ -103,8 +103,31 @@ export default function Home() {
     };
 
     const handleSelectResult = (result: DiscogsSearchResult) => {
+        if (result.type === "artist") {
+            handleArtistClick(result.id, result.title);
+            return;
+        }
         setSelectedItem(result);
         setIsSearchActive(false);
+    };
+
+    const handleArtistClick = async (artistId: number, artistName: string) => {
+        setIsLoadingSearch(true);
+        // Force the filter visual state to 'álbumes'
+        setSearchFilter("álbumes");
+        // Re-brand the input query text to denote the user is now browsing this artist
+        setQuery(artistName);
+
+        try {
+            const { results, pagination } = await discogsService.getArtistReleases(artistId.toString(), 1);
+            setSearchResults(results);
+            setHasMore(pagination?.pages > 1);
+            setCurrentPage(1);
+        } catch (error) {
+            console.error("Artist drill-down error:", error);
+        } finally {
+            setIsLoadingSearch(false);
+        }
     };
 
     const handleResetSelection = () => {

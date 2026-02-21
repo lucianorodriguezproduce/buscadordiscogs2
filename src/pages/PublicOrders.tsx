@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { Clock, ShoppingBag, Music, ShieldCheck, BadgeDollarSign, Disc } from 'lucide-react';
 import { db } from '@/lib/firebase';
@@ -14,29 +14,25 @@ export default function PublicOrders() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchOrders = async () => {
-            try {
-                setLoading(true);
-                const ordersRef = collection(db, 'orders');
-                const q = query(ordersRef, orderBy('timestamp', 'desc'));
-                const querySnapshot = await getDocs(q);
+        const ordersRef = collection(db, 'orders');
+        const q = query(ordersRef, orderBy('timestamp', 'desc'));
 
-                const publicOrdersData = querySnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return { id: doc.id, ...data };
-                });
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const publicOrdersData = querySnapshot.docs.map(doc => {
+                const data = doc.data();
+                return { id: doc.id, ...data };
+            });
 
-                // Filter out empty invalid routes or crash-ready docs.
-                const validOrders = publicOrdersData.filter((o: any) => o.item_id || o.isBatch);
-                setOrders(validOrders);
-            } catch (error) {
-                console.error("Error fetching public activity feed", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+            // Filter out empty invalid routes or crash-ready docs.
+            const validOrders = publicOrdersData.filter((o: any) => o.item_id || o.isBatch);
+            setOrders(validOrders);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching public activity feed", error);
+            setLoading(false);
+        });
 
-        fetchOrders();
+        return () => unsubscribe();
     }, []);
 
     return (

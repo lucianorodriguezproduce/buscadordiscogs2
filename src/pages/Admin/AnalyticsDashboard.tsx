@@ -78,7 +78,8 @@ export default function AnalyticsDashboard() {
                 // Fetch Active Orders
                 const ordersQuery = query(
                     collection(db, "orders"),
-                    where("status", "in", ["pending", "quoted", "negotiating", "counteroffered", "pending_acceptance"])
+                    where("status", "in", ["pending", "quoted", "negotiating", "counteroffered", "pending_acceptance"]),
+                    orderBy("timestamp", "desc")
                 );
                 const ordersSnap = await getDocs(ordersQuery);
                 const activeOrders = ordersSnap.docs.map(d => d.data());

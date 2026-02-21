@@ -137,7 +137,7 @@ export default function Profile() {
         const qOrders = query(
             collection(db, "orders"),
             where("user_id", "==", user.uid),
-            orderBy("createdAt", "desc")
+            orderBy("timestamp", "desc")
         );
         const unsubOrders = onSnapshot(qOrders, (snap) => {
             setOrderItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as OrderItem)));

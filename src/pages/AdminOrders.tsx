@@ -103,7 +103,7 @@ export default function AdminOrders() {
 
     useEffect(() => {
         showLoading("Sincronizando Base de Pedidos...");
-        const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+        const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
         const unsub = onSnapshot(q, (snap) => {
             const docs = snap.docs.map(d => ({
                 id: d.id,

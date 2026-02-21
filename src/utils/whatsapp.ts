@@ -38,7 +38,13 @@ export const generateWhatsAppLink = (order: OrderData): string => {
     let message = `Hola Oldie but Goldie! ${actionText}: ${itemTitle}.`;
 
     if (order.isBatch && order.items && order.items.length > 0) {
-        actionText = "Me interesa este lote";
+        if (intentStr === "COMPRAR" || intentStr === "EN COMPRA") {
+            actionText = "Quiero comprar este lote";
+        } else if (intentStr === "VENDER" || intentStr === "EN VENTA") {
+            actionText = "Quiero vender este lote";
+        } else {
+            actionText = "Me interesa este lote";
+        }
         message = `Hola Oldie but Goldie! ${actionText} de ${order.items.length} ítems:\n`;
         order.items.forEach((item, idx) => {
             const itemPrice = item.price ? ` | ${item.currency === 'USD' ? 'US$' : '$'}${item.price.toLocaleString()}` : '';

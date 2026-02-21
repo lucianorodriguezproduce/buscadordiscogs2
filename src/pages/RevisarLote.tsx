@@ -20,6 +20,7 @@ export default function RevisarLote() {
     const [submittedOrder, setSubmittedOrder] = useState<any>(null);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [batchIntent, setBatchIntent] = useState<'COMPRAR' | 'VENDER' | null>(null);
 
     const generateOrderNumber = () => {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -44,7 +45,7 @@ export default function RevisarLote() {
             // Store legacy fields based on the first item to not break simplistic queries immediately
             item_id: loteItems[0]?.id,
             details: {
-                intent: loteItems[0]?.intent,
+                intent: batchIntent,
                 artist: loteItems[0]?.title.split(' - ')[0],
                 album: loteItems[0]?.title.split(' - ')[1] || loteItems[0]?.title,
             },
@@ -75,6 +76,10 @@ export default function RevisarLote() {
     };
 
     const handleCheckout = async () => {
+        if (!batchIntent) {
+            alert("Debes seleccionar la intención del lote (Comprar o Vender).");
+            return;
+        }
         if (user) {
             setIsSubmitting(true);
             try {
@@ -91,6 +96,10 @@ export default function RevisarLote() {
     };
 
     const handleGoogleSignIn = async () => {
+        if (!batchIntent) {
+            alert("Debes seleccionar la intención del lote antes de continuar.");
+            return;
+        }
         setIsSubmitting(true);
         try {
             const googleUser = await signInWithGoogle();
@@ -109,6 +118,10 @@ export default function RevisarLote() {
     const handleAuthAction = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
         if (!email || !password) return;
+        if (!batchIntent) {
+            alert("Debes seleccionar la intención del lote antes de continuar.");
+            return;
+        }
 
         setIsSubmitting(true);
         try {
@@ -242,19 +255,43 @@ export default function RevisarLote() {
 
                 {/* Checkout / Auth Column */}
                 <div className="lg:col-span-2">
-                    <div className="bg-[#0A0A0A] border-2 border-primary/40 rounded-[2rem] p-6 md:p-8 space-y-8 sticky top-24 shadow-2xl">
-                        <div className="space-y-2 mb-6">
+                    <div className="bg-[#0A0A0A] border-2 border-primary/40 rounded-[2rem] p-6 md:p-8 space-y-6 sticky top-24 shadow-2xl">
+                        <div className="space-y-2">
                             <h3 className="text-2xl font-display font-black text-white uppercase tracking-tighter">Procesar Pedido</h3>
                             <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-relaxed">
                                 Se enviará el lote al administrador para iniciar las gestiones unificadas.
                             </p>
                         </div>
 
+                        <div className="bg-white/[0.02] border border-white/5 p-5 rounded-2xl space-y-4">
+                            <h4 className="text-white font-black uppercase text-[10px] tracking-widest text-center">Intención del Lote</h4>
+                            <div className="flex bg-black/50 p-1.5 rounded-xl">
+                                <button
+                                    onClick={() => setBatchIntent('COMPRAR')}
+                                    className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${batchIntent === 'COMPRAR'
+                                        ? 'bg-green-600 text-white shadow-[0_0_20px_rgba(22,163,74,0.4)]'
+                                        : 'text-gray-500 hover:text-white hover:bg-white/5'
+                                        }`}
+                                >
+                                    Quiero Comprar
+                                </button>
+                                <button
+                                    onClick={() => setBatchIntent('VENDER')}
+                                    className={`flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${batchIntent === 'VENDER'
+                                        ? 'bg-orange-600 text-white shadow-[0_0_20px_rgba(234,88,12,0.4)]'
+                                        : 'text-gray-500 hover:text-white hover:bg-white/5'
+                                        }`}
+                                >
+                                    Quiero Vender
+                                </button>
+                            </div>
+                        </div>
+
                         {user ? (
                             <button
                                 onClick={handleCheckout}
-                                disabled={isSubmitting}
-                                className="w-full bg-primary text-black py-6 rounded-2xl font-black uppercase text-sm tracking-widest shadow-[0_0_40px_rgba(204,255,0,0.2)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                disabled={isSubmitting || !batchIntent}
+                                className="w-full bg-primary text-black py-6 rounded-2xl font-black uppercase text-sm tracking-widest shadow-[0_0_40px_rgba(204,255,0,0.2)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2"
                             >
                                 {isSubmitting ? (
                                     <div className="h-4 w-4 border-2 border-black/40 border-t-black rounded-full animate-spin" />
@@ -266,7 +303,8 @@ export default function RevisarLote() {
                             <div className="space-y-6">
                                 <button
                                     onClick={handleGoogleSignIn}
-                                    className="w-full bg-white text-black py-4 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-primary transition-all shadow-lg"
+                                    disabled={!batchIntent}
+                                    className="w-full bg-white text-black py-4 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-3 hover:bg-primary transition-all shadow-lg disabled:opacity-50"
                                 >
                                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" className="w-4 h-4" />
                                     Vincular con Google
@@ -301,8 +339,8 @@ export default function RevisarLote() {
                                     </div>
                                     <button
                                         type="submit"
-                                        disabled={isSubmitting}
-                                        className="w-full bg-primary text-black py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-[1.02] active:scale-95 transition-all"
+                                        disabled={isSubmitting || !batchIntent}
+                                        className="w-full bg-primary text-black py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
                                     >
                                         {isSubmitting ? "CONECTANDO..." : "REGISTRARSE Y ENVIAR"}
                                     </button>

@@ -34,7 +34,7 @@ export const Navbar = () => {
     }, [isMenuOpen]);
 
     return (
-        <nav className="fixed w-full z-[9000] top-0 left-0 border-b border-white/[0.08] bg-black/80 backdrop-blur-2xl transition-all duration-500">
+        <nav className="fixed w-full z-[9999] top-0 left-0 border-b border-white/[0.08] bg-black transition-all duration-500">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-20">
                     <Link to="/" className="flex items-center gap-3 group">
@@ -116,30 +116,27 @@ export const Navbar = () => {
             <AnimatePresence>
                 {isMenuOpen && (
                     <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.3 }}
-                        className="fixed inset-0 top-20 bg-neutral-950/95 backdrop-blur-3xl z-[9000] md:hidden flex flex-col p-6 space-y-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed inset-0 top-20 bg-black z-[9999] md:hidden flex flex-col p-6 space-y-4 overflow-y-auto"
                     >
-                        {/* Subtle sidebar border effect */}
-                        <div className="absolute inset-y-0 right-0 w-px bg-white/5 shadow-[0_0_20px_rgba(255,255,255,0.1)]" />
-
                         {navItems.map((item) => (
                             <Link
                                 key={item.path}
                                 to={item.path}
-                                className={`flex items-center gap-5 text-xl font-black uppercase tracking-tighter p-6 rounded-[2rem] transition-all border border-transparent ${location.pathname === item.path ? "bg-primary text-black shadow-lg shadow-primary/20" : "text-white hover:text-primary bg-white/5 border-white/5"
+                                className={`flex items-center gap-5 text-xl font-black uppercase tracking-tighter p-6 rounded-[2rem] transition-all border ${location.pathname === item.path ? "bg-primary text-black border-primary" : "text-white bg-[#0A0A0A] border-white/10"
                                     }`}
                             >
                                 <item.icon className="h-6 w-6" />
                                 {item.label}
                             </Link>
                         ))}
-                        <div className="mt-auto pt-8 border-t border-white/10 flex flex-col gap-4">
+                        <div className="mt-auto pt-8 border-t border-white/10 flex flex-col gap-4 pb-12">
                             {user ? (
                                 <>
-                                    <Link to="/profile" className="flex items-center gap-4 p-5 rounded-[2rem] bg-white/5 text-white border border-white/5">
+                                    <Link to="/profile" className="flex items-center gap-4 p-5 rounded-[2rem] bg-[#0A0A0A] text-white border border-white/10">
                                         <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-black font-black overflow-hidden ring-2 ring-white/10">
                                             {user.photoURL ? <img src={user.photoURL} alt="User" /> : user.email?.charAt(0).toUpperCase()}
                                         </div>

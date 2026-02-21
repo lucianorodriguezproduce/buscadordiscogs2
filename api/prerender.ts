@@ -24,14 +24,67 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (pathSegments.length >= 3 && pathSegments[0] === 'item') {
         targetType = pathSegments[1];
         targetId = pathSegments[2];
+    } else if (pathSegments.length >= 2 && pathSegments[0] === 'orden') {
+        targetType = 'orden';
+        targetId = pathSegments[1];
     } else {
         return serveFallback(res, defaultTitle, defaultDescription, defaultImage, urlObj.href);
     }
 
     try {
-        const url = `https://${req.headers.host || 'localhost'}/item/${targetType}/${targetId}`;
+        const url = `https://${req.headers.host || 'localhost'}/${targetType === 'orden' ? 'orden' : 'item/' + targetType}/${targetId}`;
 
-        // FIREBASE CROSS-REFERENCE FOR DYNAMIC SEO
+        if (targetType === 'orden') {
+            try {
+                const projectId = process.env.VITE_FIREBASE_PROJECT_ID || 'intras-projects';
+                const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/orders/${targetId}`;
+
+                const fbResponse = await fetch(firestoreUrl, {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(2000)
+                });
+
+                if (fbResponse.ok) {
+                    const fbData = await fbResponse.json();
+                    const fields = fbData.fields || {};
+
+                    const isBatch = fields.isBatch?.booleanValue || false;
+                    const thumbUrl = fields.thumbnailUrl?.stringValue;
+                    const coverImage = fields.details?.mapValue?.fields?.cover_image?.stringValue || fields.details?.mapValue?.fields?.thumb?.stringValue;
+
+                    const firstItemCover = fields.items?.arrayValue?.values?.[0]?.mapValue?.fields?.details?.mapValue?.fields?.cover_image?.stringValue || fields.items?.arrayValue?.values?.[0]?.mapValue?.fields?.cover_image?.stringValue;
+
+                    let image = thumbUrl || coverImage || firstItemCover || defaultImage;
+                    if (image.startsWith('http://')) {
+                        image = image.replace('http://', 'https://');
+                    }
+
+                    const artist = fields.details?.mapValue?.fields?.artist?.stringValue || '';
+                    const album = fields.details?.mapValue?.fields?.album?.stringValue || 'Unknown Title';
+                    const itemsCount = fields.items?.arrayValue?.values?.length || 0;
+
+                    let title = defaultTitle;
+                    if (isBatch) {
+                        title = `Lote de ${itemsCount > 0 ? itemsCount : 'varios'} discos | Oldie but Goldie`;
+                    } else {
+                        title = artist ? `${artist} - ${album} | Oldie but Goldie` : `${album} | Oldie but Goldie`;
+                    }
+
+                    const status = fields.status?.stringValue || 'PENDIENTE';
+                    const intent = fields.details?.mapValue?.fields?.intent?.stringValue || 'CONSULTAR';
+                    const intentStr = intent.toUpperCase() === 'VENDER' ? 'En Venta' : 'En Compra';
+
+                    const description = `Orden de ${intentStr}: estado ${status.toUpperCase()}.`;
+
+                    return serveFallback(res, title, description, image, url);
+                }
+            } catch (e) {
+                console.error("Firebase prerender orden fetch failed: ", e);
+            }
+            return serveFallback(res, defaultTitle, defaultDescription, defaultImage, url);
+        }
+
+        // FIREBASE CROSS-REFERENCE FOR DYNAMIC SEO [LEGACY /item/type/id]
         let orderStatusStr = "";
         let orderIntentStr = "SOLICITUD";
         try {
@@ -48,13 +101,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                             fieldFilter: {
                                 field: { fieldPath: "item_id" },
                                 op: "EQUAL",
-                                value: { integerValue: parseInt(targetId) } // Assuming targetId is an integer for item_id
+                                value: { integerValue: parseInt(targetId) }
                             }
                         },
                         limit: 1
                     }
                 }),
-                signal: AbortSignal.timeout(1000) // 1s strict timeout for cross-reference so we don't block the scraper too long
+                signal: AbortSignal.timeout(1000)
             });
 
             if (fbResponse.ok) {
@@ -72,7 +125,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
         } catch (e) {
             console.error("Firebase prerender cross-ref failed: ", e);
-            // Non-blocking failure, proceed with default SEO
         }
 
         // 2. Fetch with Strict Timeout (WhatsApp bots abandon quickly)

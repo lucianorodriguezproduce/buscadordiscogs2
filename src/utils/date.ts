@@ -28,7 +28,7 @@ export const formatDate = (date: any) => {
 };
 
 export const getReadableDate = (ts: any) => {
-    if (!ts) return "Pendiente de sincronización";
+    if (!ts) return "Sincronizando con el servidor...";
     try {
         let date: Date;
         if (typeof ts.toDate === 'function') {
@@ -39,11 +39,11 @@ export const getReadableDate = (ts: any) => {
             date = ts;
         } else {
             const parsed = new Date(ts);
-            if (isNaN(parsed.getTime())) return "Pendiente de sincronización";
+            if (isNaN(parsed.getTime())) return "Sincronizando con el servidor...";
             date = parsed;
         }
 
-        if (isNaN(date.getTime())) return "Pendiente de sincronización";
+        if (isNaN(date.getTime())) return "Sincronizando con el servidor...";
 
         return date.toLocaleString('es-AR', {
             day: '2-digit',
@@ -54,6 +54,6 @@ export const getReadableDate = (ts: any) => {
         });
     } catch (error) {
         console.error("Error formatting date:", error);
-        return "Pendiente de sincronización";
+        return "Sincronizando con el servidor...";
     }
 };

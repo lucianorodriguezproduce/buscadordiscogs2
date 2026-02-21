@@ -245,12 +245,13 @@ export default function Profile() {
     ];
 
     const formatDate = (timestamp: any) => {
-        if (!timestamp) return "Reciente";
+        if (!timestamp) return "Sincronizando con el servidor...";
         try {
-            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-            return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
-        } catch {
-            return "Reciente";
+            const dateObj = timestamp.toDate ? timestamp.toDate() : (timestamp instanceof Date ? timestamp : new Date(timestamp));
+            if (isNaN(dateObj.getTime())) return "Sincronizando con el servidor...";
+            return dateObj.toLocaleString('es-AR');
+        } catch (e) {
+            return "Sincronizando con el servidor...";
         }
     };
 

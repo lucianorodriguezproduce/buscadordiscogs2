@@ -42,7 +42,7 @@ export default function PublicOrderView() {
         fetchOrder();
     }, [id]);
 
-    if (loading || !order || !(order.createdAt || order.timestamp)) {
+    if (loading) {
         return null;
     }
 
@@ -119,9 +119,25 @@ export default function PublicOrderView() {
                 </div>
                 <button
                     onClick={() => navigate(-1)}
-                    className="w-11 h-11 flex items-center justify-center bg-white/5 rounded-full border border-white/10 active:scale-90 transition-all"
+                    style={{
+                        position: 'fixed',
+                        top: '1rem',
+                        right: '1rem',
+                        zIndex: 9999,
+                        background: 'white',
+                        color: 'black',
+                        borderRadius: '50%',
+                        padding: '0.5rem',
+                        width: '40px',
+                        height: '40px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                    }}
+                    className="active:scale-90 transition-transform md:hidden"
                 >
-                    <X className="w-5 h-5 text-white" />
+                    <X className="w-6 h-6" />
                 </button>
             </div>
 
@@ -285,7 +301,10 @@ export default function PublicOrderView() {
 
                             <div className="flex items-center gap-2 text-gray-700 text-[10px] font-black uppercase tracking-widest md:justify-end">
                                 <Clock className="h-3.5 w-3.5" />
-                                {getReadableDate(order.createdAt || order.timestamp)}
+                                {(() => {
+                                    const dateObj = order.createdAt?.toDate ? order.createdAt.toDate() : (order.createdAt instanceof Date ? order.createdAt : null);
+                                    return dateObj ? dateObj.toLocaleString('es-AR') : "Sincronizando con el servidor...";
+                                })()}
                             </div>
                         </div>
                     </div>

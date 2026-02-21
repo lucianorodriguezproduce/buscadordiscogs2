@@ -163,6 +163,9 @@ export default function Home() {
                         } catch (err) {
                             console.error("Failed to cross-reference order record:", err);
                         }
+                    } else {
+                        // Data not found
+                        hideLoading();
                     }
                 } catch (error) {
                     console.error("Failed to load item from route:", error);
@@ -835,7 +838,34 @@ export default function Home() {
 
                         {/* Collector Receipt View Extracted Logic */}
                         {publicOrder ? (
-                            <div className="bg-[#050505] border-2 border-white/5 rounded-[1.5rem] md:rounded-[3rem] overflow-hidden group relative w-full shadow-2xl">
+                            <div className="bg-[#050505] border-2 border-white/5 rounded-[1.5rem] md:rounded-[3rem] overflow-hidden group relative w-full shadow-2xl" style={{ zIndex: 9998 }}>
+                                {/* FORCED CLOSE BUTTON (TAREA 1 & 5) */}
+                                <button
+                                    onClick={() => {
+                                        setPublicOrder(null);
+                                        setSelectedItem(null);
+                                        hideLoading();
+                                    }}
+                                    style={{
+                                        position: 'fixed',
+                                        top: '1rem',
+                                        right: '1rem',
+                                        zIndex: 9999,
+                                        background: 'white',
+                                        color: 'black',
+                                        borderRadius: '50%',
+                                        padding: '0.5rem',
+                                        width: '40px',
+                                        height: '40px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                                    }}
+                                    className="active:scale-90 transition-transform"
+                                >
+                                    <X className="w-6 h-6" />
+                                </button>
                                 <div className="absolute top-0 right-0 p-8 z-30 flex items-center gap-3">
                                     <button
                                         onClick={handleShare}
@@ -882,7 +912,12 @@ export default function Home() {
                                         <div className="grid grid-cols-2 gap-8 py-8 border-y border-white/5">
                                             <div className="space-y-2">
                                                 <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Fecha Registro</p>
-                                                <p className="text-white font-mono">{publicOrder.timestamp.toLocaleDateString('es-AR', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                                <p className="text-white font-mono">
+                                                    {(() => {
+                                                        const dateObj = publicOrder.createdAt?.toDate ? publicOrder.createdAt.toDate() : (publicOrder.createdAt instanceof Date ? publicOrder.createdAt : null);
+                                                        return dateObj ? dateObj.toLocaleString('es-AR') : "Sincronizando con el servidor...";
+                                                    })()}
+                                                </p>
                                             </div>
                                             {publicOrder.isOwner && (
                                                 <div className="space-y-2">

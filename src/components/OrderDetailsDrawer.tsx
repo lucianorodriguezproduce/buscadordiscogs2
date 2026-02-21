@@ -55,17 +55,19 @@ export default function OrderDetailsDrawer({ isOpen, onClose, title, children, f
                         transition={{ type: "spring", damping: 30, stiffness: 300 }}
                         className="fixed inset-y-0 right-0 z-[1000] flex h-[100dvh] w-full max-w-md flex-col bg-neutral-950 shadow-2xl transition-transform"
                     >
+                        {/* Botón de Cierre — Absolute for mobile visibility (Tarea 3) */}
+                        <button
+                            onClick={onClose}
+                            className="absolute top-4 right-4 z-50 p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-all active:scale-95 bg-black/40 backdrop-blur-md"
+                        >
+                            <X className="h-6 w-6" />
+                        </button>
+
                         {/* Header */}
                         <div className="flex-none flex items-center justify-between px-5 sm:px-8 py-4 sm:py-5 border-b border-white/5 safe-area-top">
                             <span className="text-sm font-mono font-bold text-gray-400 uppercase tracking-widest truncate">
                                 {title || "Detalle de Pedido"}
                             </span>
-                            <button
-                                onClick={onClose}
-                                className="p-2.5 text-gray-500 hover:text-white hover:bg-white/5 rounded-xl transition-all active:scale-90"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
                         </div>
 
                         {/* Body — scrollable with touch support */}

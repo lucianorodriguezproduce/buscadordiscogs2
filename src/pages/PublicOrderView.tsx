@@ -21,7 +21,10 @@ export default function PublicOrderView() {
 
     useEffect(() => {
         const fetchOrder = async () => {
-            if (!id) return;
+            if (!id) {
+                setLoading(false);
+                return;
+            }
             showLoading("Localizando Lote...");
             try {
                 const docRef = doc(db, "orders", id);

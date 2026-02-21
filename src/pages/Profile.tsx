@@ -649,7 +649,7 @@ export default function Profile() {
                             </span>
                             <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 flex items-center gap-1.5">
                                 <Clock className="h-3 w-3" />
-                                Fecha de creación: {getReadableDate(selectedOrder.createdAt || selectedOrder.timestamp)}
+                                Fecha de creación: {selectedOrder?.createdAt?.seconds ? new Date(selectedOrder.createdAt.seconds * 1000).toLocaleString('es-AR') : "Cargando fecha..."}
                             </span>
                         </div>
 

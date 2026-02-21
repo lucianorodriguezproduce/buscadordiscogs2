@@ -23,7 +23,7 @@ export default function Home() {
     const { user } = useAuth();
     const { type: routeType, id: routeId } = useParams<{ type: string, id: string }>();
     const navigate = useNavigate();
-    const { toggleItem, isInLote, totalCount } = useLote();
+    const { addItemToBatch, isInLote, totalCount, loteItems } = useLote();
 
     const [intent, setIntent] = useState<Intent | null>(null);
     const [query, setQuery] = useState("");
@@ -70,11 +70,6 @@ export default function Home() {
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    // Auto-scroll on step change
-    useEffect(() => {
-        scrollToTop();
-    }, [step, selectedItem]);
-
     // Analytics tracking for Item Views
     useEffect(() => {
         if (publicOrder) {
@@ -82,7 +77,30 @@ export default function Home() {
         } else if (selectedItem) {
             pushViewItem(selectedItem, intent || "OBSERVANDO");
         }
-    }, [selectedItem?.id, publicOrder?.order_number]);
+    }, [selectedItem?.id, publicOrder?.order_number, intent]);
+
+    // Automatic Addition Effect - Zero Confirmation Flow
+    useEffect(() => {
+        if (selectedItem && format && condition) {
+            const existing = loteItems.find(i => i.id === selectedItem.id);
+
+            // Only add/update if it's new OR if attributes (format/condition) changed
+            if (!existing || existing.format !== format || existing.condition !== condition) {
+                addItemToBatch({
+                    id: selectedItem.id,
+                    title: selectedItem.title,
+                    cover_image: selectedItem.cover_image || selectedItem.thumb || '',
+                    format,
+                    condition
+                });
+
+                // Show toast only on first addition of this item
+                if (!existing) {
+                    setShowToast(true);
+                }
+            }
+        }
+    }, [format, condition, selectedItem, loteItems, addItemToBatch]);
 
     // Handle initial route loading if hitting /item/:type/:id directly
     useEffect(() => {
@@ -990,76 +1008,24 @@ export default function Home() {
 
                                 {format && condition && (
                                     <div className="pt-8 border-t border-white/5 space-y-4">
-                                        {totalCount === 0 ? (
-                                            <>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <button
-                                                        onClick={() => handleIntentSelect("COMPRAR")}
-                                                        className="py-8 rounded-[1.5rem] font-black uppercase tracking-tighter text-2xl md:text-3xl transition-all bg-white/10 hover:bg-primary hover:text-black border-2 border-transparent"
-                                                    >
-                                                        Quiero Comprar
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleIntentSelect("VENDER")}
-                                                        className="bg-white/10 hover:bg-primary hover:text-black py-8 rounded-[1.5rem] font-black uppercase tracking-tighter text-2xl md:text-3xl transition-all border-2 border-transparent"
-                                                    >
-                                                        Quiero Vender
-                                                    </button>
-                                                </div>
-                                                <div className="pt-2 text-center">
-                                                    <button
-                                                        onClick={() => {
-                                                            if (selectedItem && format && condition) {
-                                                                toggleItem({
-                                                                    id: selectedItem.id,
-                                                                    title: selectedItem.title,
-                                                                    cover_image: selectedItem.cover_image || selectedItem.thumb || '',
-                                                                    format,
-                                                                    condition
-                                                                });
-                                                                setShowToast(true);
-                                                            }
-                                                        }}
-                                                        className="inline-flex items-center justify-center gap-2 text-primary/80 hover:text-primary font-black uppercase tracking-widest text-xs py-3 px-6 rounded-full border border-primary/20 hover:border-primary/50 hover:bg-primary/10 transition-all"
-                                                    >
-                                                        + Añadir este ítem a un lote
-                                                    </button>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <div className="flex flex-col gap-4">
-                                                <button
-                                                    onClick={() => {
-                                                        if (selectedItem && format && condition) {
-                                                            if (isInLote(selectedItem.id)) {
-                                                                toggleItem({ id: selectedItem.id } as any);
-                                                            } else {
-                                                                toggleItem({
-                                                                    id: selectedItem.id,
-                                                                    title: selectedItem.title,
-                                                                    cover_image: selectedItem.cover_image || selectedItem.thumb || '',
-                                                                    format,
-                                                                    condition
-                                                                });
-                                                                setShowToast(true);
-                                                            }
-                                                        }
-                                                    }}
-                                                    className={`w-full py-6 rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 transition-all ${isInLote(selectedItem?.id || 0)
-                                                        ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20'
-                                                        : 'bg-white/10 text-white hover:bg-white/20'
-                                                        }`}
-                                                >
-                                                    {isInLote(selectedItem?.id || 0) ? "- Quitar del lote" : "+ Añadir otro ítem al lote"}
-                                                </button>
-                                                <button
-                                                    onClick={() => navigate('/revisar-lote')}
-                                                    className="w-full bg-primary text-black py-6 rounded-2xl font-black uppercase text-sm tracking-widest shadow-[0_0_40px_rgba(204,255,0,0.2)] hover:scale-[1.02] active:scale-95 transition-all"
-                                                >
-                                                    FINALIZAR MI PEDIDO
-                                                </button>
-                                            </div>
-                                        )}
+                                        <div className="flex flex-col gap-4">
+                                            <button
+                                                onClick={() => {
+                                                    setShowToast(false);
+                                                    handleResetSelection();
+                                                    scrollToTop();
+                                                }}
+                                                className="w-full py-6 rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 transition-all bg-white/10 text-white hover:bg-white/20"
+                                            >
+                                                + Añadir otro ítem al lote
+                                            </button>
+                                            <button
+                                                onClick={() => navigate('/revisar-lote')}
+                                                className="w-full bg-primary text-black py-6 rounded-2xl font-black uppercase text-sm tracking-widest shadow-[0_0_40px_rgba(204,255,0,0.2)] hover:scale-[1.02] active:scale-95 transition-all"
+                                            >
+                                                FINALIZAR MI PEDIDO
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </motion.div>

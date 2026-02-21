@@ -14,6 +14,7 @@ export interface BatchItem {
 interface LoteContextType {
     loteItems: BatchItem[];
     toggleItem: (item: BatchItem) => void;
+    addItemToBatch: (item: BatchItem) => void;
     isInLote: (id: number) => boolean;
     clearLote: () => void;
     totalCount: number;
@@ -47,6 +48,21 @@ export function LoteProvider({ children }: { children: ReactNode }) {
         });
     };
 
+    const addItemToBatch = (item: BatchItem) => {
+        setLoteItems(prev => {
+            const existingIndex = prev.findIndex(i => i.id === item.id);
+            let nextItems;
+            if (existingIndex > -1) {
+                nextItems = [...prev];
+                nextItems[existingIndex] = item;
+            } else {
+                nextItems = [...prev, item];
+            }
+            sessionStorage.setItem("stitch_lote", JSON.stringify(nextItems));
+            return nextItems;
+        });
+    };
+
     const isInLote = (id: number) => loteItems.some(i => i.id === id);
 
     const clearLote = () => {
@@ -58,6 +74,7 @@ export function LoteProvider({ children }: { children: ReactNode }) {
         <LoteContext.Provider value={{
             loteItems,
             toggleItem,
+            addItemToBatch,
             isInLote,
             clearLote,
             totalCount: loteItems.length

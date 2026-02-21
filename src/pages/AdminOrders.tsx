@@ -66,6 +66,7 @@ interface OrderDoc {
     };
     isBatch?: boolean;
     items?: any[];
+    type?: 'buy' | 'sell';
 }
 
 type StatusFilter = "all" | "pending" | "negotiating" | "completed" | "cancelled" | "quoted";
@@ -561,18 +562,96 @@ export default function AdminOrders() {
             >
                 {selectedOrder && (
                     <>
-                        {/* Order Metadata */}
+                        {/* Order Metadata (Reconstrucción Fase 2) */}
                         <div className="flex flex-col gap-1 mb-6">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
-                                Pedido ID: {selectedOrder.order_number || selectedOrder.id}
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                Orden: <span className="text-white">{selectedOrder.order_number || selectedOrder.id}</span>
                             </span>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 flex items-center gap-1.5">
+                            <span className="text-[10px] text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
                                 <Clock className="h-3 w-3" />
-                                Fecha de creación: {selectedOrder?.createdAt?.seconds ? new Date(selectedOrder.createdAt.seconds * 1000).toLocaleString('es-AR') : "Cargando fecha..."}
+                                Fecha: {getReadableDate(selectedOrder?.createdAt || selectedOrder?.timestamp)}
+                            </span>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="text-[9px] font-black uppercase tracking-wider text-gray-600">Estado:</span>
+                                {(() => {
+                                    const option = STATUS_OPTIONS.find(o => o.value === selectedOrder.status);
+                                    if (!option) return <span className="text-[10px] uppercase font-black">{selectedOrder.status}</span>;
+                                    const StatusIcon = option.icon;
+                                    return (
+                                        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${option.bg} border backdrop-blur-md`}>
+                                            <StatusIcon className={`w-3 h-3 ${option.color}`} />
+                                            <span className={`text-[10px] uppercase tracking-widest font-black ${option.color}`}>{option.label}</span>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                            <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mt-1">
+                                Operación: <span className={selectedOrder.type === 'buy' ? 'text-green-400' : 'text-orange-400'}>
+                                    {selectedOrder.type === 'buy' ? 'Compra' : 'Venta'}
+                                </span>
                             </span>
                         </div>
 
-                        {/* User Offer Highlight (TAREA 1) */}
+                        {/* Item Breakdown (Tarea 2 de Fase 2) */}
+                        <div className="space-y-4 mb-6">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 italic">Discos en este Pedido</h4>
+
+                            {selectedOrder.isBatch && (selectedOrder.items || []).length > 0 ? (
+                                <div className="max-h-[400px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                                    {(selectedOrder.items || []).map((item: any, idx: number) => (
+                                        <div key={idx} className="flex gap-4 p-3 rounded-xl bg-white/[0.02] border border-white/5 items-center">
+                                            <div className="w-12 h-12 flex-shrink-0 bg-black rounded-lg overflow-hidden border border-white/5">
+                                                <img src={item.cover_image} alt="" className="w-full h-full object-cover" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-bold text-white text-sm truncate uppercase tracking-tight">{item.title}</p>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="bg-primary/10 text-primary border border-primary/20 text-[8px] font-black uppercase tracking-tighter px-2 py-0.5 rounded">
+                                                        {item.format || "N/A"}
+                                                    </span>
+                                                    <span className="bg-white/5 text-gray-400 border border-white/10 text-[8px] font-black uppercase tracking-tighter px-2 py-0.5 rounded">
+                                                        {item.condition || "N/A"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="flex-shrink-0">
+                                                <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded border shadow-sm ${item.intent === 'COMPRAR'
+                                                    ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                                    : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                                    }`}>
+                                                    {item.intent || 'COMPRAR'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : !selectedOrder.isBatch ? (
+                                <div className="flex gap-4 p-4 rounded-xl bg-white/[0.04] border border-white/10 items-center">
+                                    <div className="w-16 h-16 flex-shrink-0 bg-black rounded-lg overflow-hidden border border-white/10">
+                                        <img src={selectedOrder.details?.cover_image} alt="" className="w-full h-full object-cover" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-bold text-white text-lg truncate uppercase tracking-tight">
+                                            {selectedOrder.details?.artist} — {selectedOrder.details?.album}
+                                        </p>
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span className="bg-primary/10 text-primary border border-primary/20 text-[10px] font-black uppercase tracking-tighter px-3 py-1 rounded">
+                                                {selectedOrder.details?.format || "N/A"}
+                                            </span>
+                                            <span className="bg-white/5 text-gray-400 border border-white/10 text-[10px] font-black uppercase tracking-tighter px-3 py-1 rounded">
+                                                {selectedOrder.details?.condition || "N/A"}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="p-8 text-center bg-white/[0.02] border border-dashed border-white/10 rounded-2xl">
+                                    <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">No hay discos registrados en este lote</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* User Offer Highlight (Re-ordered after items) */}
                         <div className="bg-orange-500/5 border border-orange-500/20 rounded-2xl p-6 space-y-2 mb-4">
                             <span className="text-[10px] font-black uppercase tracking-widest text-orange-400">Oferta Inicial del Usuario</span>
                             <div className="flex items-center gap-3">
@@ -588,7 +667,7 @@ export default function AdminOrders() {
                         </div>
 
                         {/* User Section */}
-                        <div className="flex items-center gap-4 bg-white/[0.03] border border-white/5 rounded-xl p-4">
+                        <div className="flex items-center gap-4 bg-white/[0.03] border border-white/5 rounded-xl p-4 mb-4">
                             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
                                 {selectedOrder.user_photo ? (
                                     <img src={selectedOrder.user_photo} alt="" className="w-full h-full object-cover" />
@@ -602,60 +681,9 @@ export default function AdminOrders() {
                             </div>
                         </div>
 
-                        {/* Cover Image or Batch Image Placeholder */}
-                        {selectedOrder.isBatch ? (
-                            <div className="w-full aspect-square md:aspect-[2/1] max-h-[160px] rounded-2xl overflow-hidden border border-white/10 bg-white/[0.02] flex items-center justify-center">
-                                <span className="text-3xl font-display font-black text-gray-600 uppercase tracking-tighter">
-                                    Lote de {selectedOrder.items?.length} Elementos
-                                </span>
-                            </div>
-                        ) : selectedOrder.details.cover_image && (
-                            <div className="w-full aspect-square max-h-[280px] rounded-2xl overflow-hidden border border-white/10">
-                                <img src={selectedOrder.details.cover_image} alt="" className="w-full h-full object-cover" />
-                            </div>
-                        )}
-
-                        {/* Item Info / Lote Items */}
-                        <div className="space-y-2">
-                            {selectedOrder.isBatch && (selectedOrder.items || []).length > 0 ? (
-                                <div className="space-y-3 mt-4">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-2">Desglose de Lote</h4>
-                                    {(selectedOrder.items || []).map((item, idx) => (
-                                        <div key={idx} className="flex gap-4 p-3 rounded-xl bg-white/[0.02] border border-white/5 items-center">
-                                            <div className="w-12 h-12 flex-shrink-0 bg-black rounded-lg overflow-hidden">
-                                                <img src={item.cover_image} alt="" className="w-full h-full object-cover" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="font-bold text-white text-sm truncate">{item.title}</p>
-                                                <p className="text-xs text-gray-500 font-bold">{item.format} • {item.condition}</p>
-                                            </div>
-                                            <div className="flex-shrink-0 flex flex-col items-end">
-                                                <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${item.intent === 'COMPRAR' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-orange-500/10 text-orange-400 border-orange-500/20'
-                                                    }`}>
-                                                    {item.intent}
-                                                </span>
-                                                {item.price && (
-                                                    <span className="text-[10px] text-primary font-mono mt-1">
-                                                        {item.currency === "USD" ? "US$" : "$"}{item.price.toLocaleString()}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <>
-                                    <h3 className="text-2xl font-display font-black text-white uppercase tracking-tight leading-tight">
-                                        {selectedOrder.details?.artist || (selectedOrder as any).artist || 'Unknown Artist'}
-                                    </h3>
-                                    <p className="text-lg text-gray-400 font-bold">{selectedOrder.details?.album || (selectedOrder as any).title || 'Unknown Album'}</p>
-                                </>
-                            )}
-                        </div>
-
-                        {/* Details Grid (Hide for Batch as it exists inside items) */}
+                        {/* Details Grid (Legacy fallback) */}
                         {!selectedOrder.isBatch && (
-                            <div className="grid grid-cols-2 gap-3 mt-6">
+                            <div className="grid grid-cols-2 gap-4 mb-6 pt-4 border-t border-white/5">
                                 <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
                                     <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Intención</p>
                                     <p className={`text-sm font-black uppercase ${selectedOrder.details.intent === "COMPRAR" ? "text-green-400" : "text-orange-400"}`}>
@@ -663,66 +691,14 @@ export default function AdminOrders() {
                                     </p>
                                 </div>
                                 <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Estado</p>
-                                    <p className={`text-sm font-black ${getStatusConfig(selectedOrder.status).color}`}>
-                                        {getStatusConfig(selectedOrder.status).label}
-                                    </p>
-                                </div>
-                                <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
                                     <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Formato</p>
                                     <p className="text-sm font-bold text-white">{selectedOrder.details.format}</p>
                                 </div>
-                                <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Condición</p>
-                                    <p className="text-sm font-bold text-white">{selectedOrder.details.condition}</p>
-                                </div>
                             </div>
                         )}
-
-                        {/* Price Info */}
-                        {selectedOrder.details.price && (
-                            <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 flex items-center justify-between">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Precio Usuario</span>
-                                <span className="text-xl font-display font-black text-primary">
-                                    {selectedOrder.details.currency === "USD" ? "US$" : "$"} {selectedOrder.details.price.toLocaleString()}
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Market Reference */}
-                        {selectedOrder.details.intent === "VENDER" && selectedOrder.market_reference && (
-                            <div className="bg-yellow-500/5 border border-yellow-500/10 rounded-xl p-4 flex items-center justify-between">
-                                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-gray-500">
-                                    <TrendingUp className="h-3.5 w-3.5 text-yellow-500" />
-                                    Ref. Discogs
-                                </span>
-                                <span className="text-lg font-mono font-bold text-yellow-500">
-                                    US$ {selectedOrder.market_reference.toFixed(2)}
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Admin Offer (if already quoted) */}
-                        {selectedOrder.admin_offer_price && (
-                            <div className="bg-purple-500/[0.05] border border-purple-500/15 rounded-xl p-4 flex items-center justify-between mt-6">
-                                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-purple-400">
-                                    <BadgeDollarSign className="h-3.5 w-3.5" />
-                                    {selectedOrder.isBatch ? "Lote Cotizado" : "Cotizado"}
-                                </span>
-                                <span className="text-xl font-display font-black text-white">
-                                    {selectedOrder.admin_offer_currency === "USD" ? "US$" : "$"} {selectedOrder.admin_offer_price.toLocaleString()}
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Date */}
-                        <div className="flex items-center gap-2 text-gray-600 text-xs font-bold mt-4">
-                            <Clock className="h-3.5 w-3.5" />
-                            {getReadableDate(selectedOrder.createdAt || selectedOrder.timestamp)}
-                        </div>
                     </>
                 )}
-            </OrderDetailsDrawer >
-        </div >
+            </OrderDetailsDrawer>
+        </div>
     );
 }

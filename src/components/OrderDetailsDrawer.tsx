@@ -55,12 +55,27 @@ export default function OrderDetailsDrawer({ isOpen, onClose, title, children, f
                         transition={{ type: "spring", damping: 30, stiffness: 300 }}
                         className="fixed inset-y-0 right-0 z-[1000] flex h-[100dvh] w-full max-w-md flex-col bg-neutral-950 shadow-2xl transition-transform"
                     >
-                        {/* Botón de Cierre — Absolute for mobile visibility (Tarea 3) */}
+                        {/* Botón de Cierre DEFINITIVO — Tarea 3 de Fase 2 */}
                         <button
                             onClick={onClose}
-                            className="absolute top-4 right-4 z-50 p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-full transition-all active:scale-95 bg-black/40 backdrop-blur-md"
+                            style={{
+                                position: 'fixed',
+                                top: '10px',
+                                right: '10px',
+                                zIndex: 1000, // Higher than fixed panels
+                                background: '#000',
+                                color: '#fff',
+                                borderRadius: '50%',
+                                width: '35px',
+                                height: '35px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid rgba(255,255,255,0.1)'
+                            }}
+                            className="shadow-2xl active:scale-95 transition-transform"
                         >
-                            <X className="h-6 w-6" />
+                            <X className="h-5 w-5 mx-auto" />
                         </button>
 
                         {/* Header */}

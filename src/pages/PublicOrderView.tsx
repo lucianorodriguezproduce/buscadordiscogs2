@@ -25,6 +25,16 @@ export default function PublicOrderView() {
                 setLoading(false);
                 return;
             }
+
+            // Anti-Timeout 3s (Tarea 4 de Fase 2)
+            const timeout = setTimeout(() => {
+                if (loading) {
+                    console.warn("Safety Timeout Triggered: 3s reached.");
+                    setLoading(false);
+                    hideLoading();
+                }
+            }, 3000);
+
             showLoading("Localizando Lote...");
             try {
                 const docRef = doc(db, "orders", id);
@@ -35,6 +45,7 @@ export default function PublicOrderView() {
             } catch (error) {
                 console.error("Error fetching order:", error);
             } finally {
+                clearTimeout(timeout);
                 setLoading(false);
                 hideLoading();
             }

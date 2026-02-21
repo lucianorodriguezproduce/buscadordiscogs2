@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, Music, Disc, Lock, Clock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useLoading } from "@/context/LoadingContext";
+import { formatDate, getReadableDate } from "@/utils/date";
 
 export default function PublicOrderView() {
     const { id } = useParams<{ id: string }>();
@@ -259,13 +260,7 @@ export default function PublicOrderView() {
 
                             <div className="flex items-center gap-2 text-gray-700 text-[10px] font-black uppercase tracking-widest md:justify-end">
                                 <Clock className="h-3.5 w-3.5" />
-                                {(() => {
-                                    const dateObj = order.createdAt || order.timestamp;
-                                    if (dateObj?.toDate) return dateObj.toDate().toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
-                                    if (dateObj?.seconds) return new Date(dateObj.seconds * 1000).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
-                                    if (dateObj instanceof Date) return dateObj.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
-                                    return "Fecha pendiente";
-                                })()}
+                                {getReadableDate(order.createdAt || order.timestamp)}
                             </div>
                         </div>
                     </div>

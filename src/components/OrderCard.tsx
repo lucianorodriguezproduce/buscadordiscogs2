@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import type { OrderData } from '@/utils/whatsapp';
-import { formatDate } from '@/utils/date';
+import { formatDate, getReadableDate } from '@/utils/date';
 
 interface OrderCardProps {
     order: any; // Using any or an extended OrderData to catch legacy fields without crashing
@@ -217,7 +217,7 @@ export default function OrderCard({ order, context, onClick }: OrderCardProps) {
                     {/* Time & Public Link Line */}
                     <div className="flex items-center justify-between pt-2">
                         <span className="text-[10px] text-gray-600 font-bold flex items-center gap-1.5 uppercase font-mono">
-                            <Clock className="w-3.5 h-3.5" /> {formatDate(order.createdAt || order.timestamp)}
+                            <Clock className="w-3.5 h-3.5" /> {getReadableDate(order.createdAt || order.timestamp)}
                         </span>
                         <Link
                             to={`/orden/${order.id}`}

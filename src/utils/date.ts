@@ -26,3 +26,30 @@ export const formatDate = (date: any) => {
         year: 'numeric'
     }).format(d);
 };
+
+export const getReadableDate = (ts: any) => {
+    if (!ts) return "Procesando...";
+    try {
+        let date: Date;
+        if (ts.toDate) {
+            date = ts.toDate();
+        } else if (ts.seconds) {
+            date = new Date(ts.seconds * 1000);
+        } else if (ts instanceof Date) {
+            date = ts;
+        } else {
+            date = new Date(ts);
+        }
+
+        if (isNaN(date.getTime())) return "Fecha no disponible";
+
+        return date.toLocaleDateString('es-AR', {
+            day: 'numeric',
+            month: 'numeric',
+            year: 'numeric'
+        });
+    } catch (error) {
+        console.error("Error formatting date:", error);
+        return "Fecha no disponible";
+    }
+};

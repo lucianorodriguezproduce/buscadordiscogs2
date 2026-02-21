@@ -28,7 +28,7 @@ import {
     CheckCircle2
 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { formatDate } from "@/utils/date";
+import { formatDate, getReadableDate } from "@/utils/date";
 import { collection, onSnapshot, query, orderBy, where, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { useState, useEffect } from "react";
 import { AlbumCardSkeleton } from "@/components/ui/Skeleton";
@@ -69,6 +69,8 @@ interface OrderItem {
         price?: number;
         currency?: string;
     };
+    isBatch?: boolean;
+    items?: any[];
     totalPrice?: number; // Added based on the JSX change
     currency?: string; // Added based on the JSX change
 }
@@ -647,44 +649,103 @@ export default function Profile() {
                             </span>
                             <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 flex items-center gap-1.5">
                                 <Clock className="h-3 w-3" />
-                                Fecha de creación: {formatDate(selectedOrder.createdAt || selectedOrder.timestamp)}
+                                Fecha de creación: {getReadableDate(selectedOrder.createdAt || selectedOrder.timestamp)}
                             </span>
                         </div>
 
-                        {/* Cover Image */}
-                        {selectedOrder.details.cover_image && (
+                        {/* User Offer Highlight (Parity with Admin) */}
+                        <div className="bg-orange-500/5 border border-orange-500/20 rounded-2xl p-5 space-y-2 mb-4">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-orange-400">Oferta Inicial</span>
+                            <div className="flex items-center gap-3">
+                                <DollarSign className="h-5 w-5 text-orange-500" />
+                                <span className="text-3xl font-display font-black text-white">
+                                    {selectedOrder.totalPrice
+                                        ? `${selectedOrder.currency === 'USD' ? 'US$' : '$'} ${selectedOrder.totalPrice.toLocaleString()}`
+                                        : (selectedOrder.details?.price
+                                            ? `${selectedOrder.details.currency === 'USD' ? 'US$' : '$'} ${selectedOrder.details.price.toLocaleString()}`
+                                            : "Precio no especificado")}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Cover Image or Batch info */}
+                        {selectedOrder.isBatch ? (
+                            <div className="w-full aspect-square md:aspect-[2/1] max-h-[140px] rounded-2xl overflow-hidden border border-white/10 bg-white/[0.02] flex items-center justify-center">
+                                <span className="text-2xl font-display font-black text-gray-600 uppercase tracking-tighter">
+                                    Lote de {selectedOrder.items?.length || 0} ítems
+                                </span>
+                            </div>
+                        ) : selectedOrder.details.cover_image && (
                             <div className="w-full aspect-square max-h-[300px] rounded-2xl overflow-hidden border border-white/10">
                                 <img src={selectedOrder.details.cover_image} alt="" className="w-full h-full object-cover" />
                             </div>
                         )}
 
-                        {/* Item Info */}
+                        {/* Item Breakdown (Parity with Admin) */}
                         <div className="space-y-2">
-                            <h3 className="text-2xl font-display font-black text-white uppercase tracking-tight leading-tight">
-                                {selectedOrder.details?.artist || (selectedOrder as any).artist || 'Unknown Artist'}
-                            </h3>
-                            <p className="text-lg text-gray-400 font-bold">{selectedOrder.details?.album || (selectedOrder as any).title || 'Unknown Album'}</p>
+                            {selectedOrder.isBatch && (selectedOrder.items || []).length > 0 ? (
+                                <div className="space-y-3 mt-4">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-2">Detalles del Lote</h4>
+                                    <div className="max-h-[400px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                                        {(selectedOrder.items || []).map((item: any, idx: number) => (
+                                            <div key={idx} className="flex gap-4 p-3 rounded-xl bg-white/[0.02] border border-white/5 items-center">
+                                                <div className="w-12 h-12 flex-shrink-0 bg-black rounded-lg overflow-hidden border border-white/5">
+                                                    <img src={item.cover_image} alt="" className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-bold text-white text-sm truncate uppercase tracking-tight">{item.title}</p>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="bg-primary/10 text-primary border border-primary/20 text-[8px] font-black uppercase tracking-tighter px-2 py-0.5 rounded">
+                                                            {item.format || "N/A"}
+                                                        </span>
+                                                        <span className="bg-white/5 text-gray-400 border border-white/10 text-[8px] font-black uppercase tracking-tighter px-2 py-0.5 rounded">
+                                                            {item.condition || "N/A"}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex-shrink-0">
+                                                    <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded border shadow-sm ${item.intent === 'COMPRAR'
+                                                        ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                                        : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                                        }`}>
+                                                        {item.intent || 'COMPRAR'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <h3 className="text-2xl font-display font-black text-white uppercase tracking-tight leading-tight">
+                                        {selectedOrder.details?.artist || (selectedOrder as any).artist || 'Unknown Artist'}
+                                    </h3>
+                                    <p className="text-lg text-gray-400 font-bold">{selectedOrder.details?.album || (selectedOrder as any).title || 'Unknown Album'}</p>
+                                </>
+                            )}
                         </div>
 
-                        {/* Details Grid */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Intención</p>
-                                <p className={`text-sm font-black uppercase ${(selectedOrder.details?.intent || selectedOrder.status) === "COMPRAR" ? "text-green-400" : "text-orange-400"}`}>{selectedOrder.details?.intent || 'COMPRAR'}</p>
+                        {/* Details Grid (Hide for Batch as it exists inside items) */}
+                        {!selectedOrder.isBatch && (
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Intención</p>
+                                    <p className={`text-sm font-black uppercase ${(selectedOrder.details?.intent || selectedOrder.status) === "COMPRAR" ? "text-green-400" : "text-orange-400"}`}>{selectedOrder.details?.intent || 'COMPRAR'}</p>
+                                </div>
+                                <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Estado</p>
+                                    <div>{getStatusBadge(selectedOrder.status)}</div>
+                                </div>
+                                <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Formato</p>
+                                    <p className="text-sm font-bold text-white">{selectedOrder.details.format}</p>
+                                </div>
+                                <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Condición</p>
+                                    <p className="text-sm font-bold text-white">{selectedOrder.details.condition}</p>
+                                </div>
                             </div>
-                            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Estado</p>
-                                <div>{getStatusBadge(selectedOrder.status)}</div>
-                            </div>
-                            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Formato</p>
-                                <p className="text-sm font-bold text-white">{selectedOrder.details.format}</p>
-                            </div>
-                            <div className="bg-white/[0.03] border border-white/5 rounded-xl p-4 space-y-1">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-gray-600">Condición</p>
-                                <p className="text-sm font-bold text-white">{selectedOrder.details.condition}</p>
-                            </div>
-                        </div>
+                        )}
 
                         {/* Price (for VENDER) */}
                         {selectedOrder.details.price && (
@@ -698,7 +759,7 @@ export default function Profile() {
 
                         <div className="flex items-center gap-2 text-gray-700 text-[10px] font-black uppercase tracking-widest">
                             <Clock className="h-3 w-3" />
-                            {formatDate(selectedOrder.createdAt || selectedOrder.timestamp)}
+                            {getReadableDate(selectedOrder.createdAt || selectedOrder.timestamp)}
                         </div>
 
                         <Link

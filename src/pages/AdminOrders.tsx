@@ -83,7 +83,7 @@ const STATUS_OPTIONS = [
 
 import { Link } from "react-router-dom";
 import { Trash2 } from "lucide-react";
-import { formatDate } from "@/utils/date";
+import { formatDate, getReadableDate } from "@/utils/date";
 
 export default function AdminOrders() {
     const { showLoading, hideLoading } = useLoading();
@@ -568,7 +568,7 @@ export default function AdminOrders() {
                             </span>
                             <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 flex items-center gap-1.5">
                                 <Clock className="h-3 w-3" />
-                                Fecha de creación: {formatDate(selectedOrder.createdAt || selectedOrder.timestamp)}
+                                Fecha de creación: {getReadableDate(selectedOrder.createdAt || selectedOrder.timestamp)}
                             </span>
                         </div>
 
@@ -718,7 +718,7 @@ export default function AdminOrders() {
                         {/* Date */}
                         <div className="flex items-center gap-2 text-gray-600 text-xs font-bold mt-4">
                             <Clock className="h-3.5 w-3.5" />
-                            {formatDate(selectedOrder.timestamp)}
+                            {getReadableDate(selectedOrder.createdAt || selectedOrder.timestamp)}
                         </div>
                     </>
                 )}

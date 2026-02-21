@@ -6,21 +6,11 @@ import { db } from '@/lib/firebase';
 import { SEO } from '@/components/SEO';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Defined based on Oldie but Goldie orders schema context
-interface PublicOrder {
-    id: string;
-    itemType: string;
-    itemId: string;
-    title: string;
-    artist: string;
-    imageUrl: string;
-    status: 'pending' | 'quoted' | 'sold' | 'rejected';
-    intent?: string;
-    createdAt: Date;
-}
+import OrderCard from '@/components/OrderCard';
 
+// Fetch the clean generic OrderData
 export default function PublicOrders() {
-    const [orders, setOrders] = useState<PublicOrder[]>([]);
+    const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -31,29 +21,16 @@ export default function PublicOrders() {
                 const q = query(ordersRef, orderBy('timestamp', 'desc'));
                 const querySnapshot = await getDocs(q);
 
-                console.log("Datos recibidos de Firebase:", querySnapshot.docs.map(d => d.data()));
-
-                const publicOrdersData: PublicOrder[] = querySnapshot.docs.map(doc => {
+                const publicOrdersData = querySnapshot.docs.map(doc => {
                     const data = doc.data();
-
-                    return {
-                        id: doc.id,
-                        itemType: 'release', // Defaulting since type is not explicitly stored in V1 payload
-                        itemId: data.item_id || '',
-                        title: data.details?.album || 'Unknown Title',
-                        artist: data.details?.artist || 'Unknown Artist',
-                        imageUrl: data.details?.cover_image || '',
-                        status: data.status || 'pending',
-                        intent: data.details?.intent || 'COMPRAR',
-                        createdAt: data.timestamp?.toDate ? data.timestamp.toDate() : (data.timestamp?.seconds ? new Date(data.timestamp.seconds * 1000) : new Date(data.timestamp || Date.now())),
-                    };
+                    return { id: doc.id, ...data };
                 });
 
-                // Filter out missing items that would break the dynamically generated routes
-                const validOrders = publicOrdersData.filter(o => o.itemId);
+                // Filter out empty invalid routes or crash-ready docs.
+                const validOrders = publicOrdersData.filter((o: any) => o.item_id || o.isBatch);
                 setOrders(validOrders);
             } catch (error) {
-                console.error("Error fetching public activity feed: Missing Firebase Composite Index or Invalid Rule. Detalle: ", error);
+                console.error("Error fetching public activity feed", error);
             } finally {
                 setLoading(false);
             }
@@ -61,44 +38,6 @@ export default function PublicOrders() {
 
         fetchOrders();
     }, []);
-
-    // Format relative time (e.g. "hace 2 horas")
-    const getRelativeTime = (date: Date) => {
-        const now = new Date();
-        const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-        if (diffInSeconds < 60) return `hace ${diffInSeconds}s`;
-        if (diffInSeconds < 3600) return `hace ${Math.floor(diffInSeconds / 60)}m`;
-        if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)}h`;
-        return `hace ${Math.floor(diffInSeconds / 86400)}d`;
-    };
-
-    const getStatusBadge = (status: PublicOrder['status']) => {
-        switch (status) {
-            case 'sold':
-                return (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-md">
-                        <ShoppingBag className="w-3.5 h-3.5 text-primary" />
-                        <span className="text-[10px] uppercase tracking-widest font-black text-primary">Vendido</span>
-                    </div>
-                );
-            case 'quoted':
-                return (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 backdrop-blur-md">
-                        <BadgeDollarSign className="w-3.5 h-3.5 text-blue-400" />
-                        <span className="text-[10px] uppercase tracking-widest font-black text-blue-400">Cotizado</span>
-                    </div>
-                );
-            case 'pending':
-            default:
-                return (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
-                        <Clock className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="text-[10px] uppercase tracking-widest font-black text-gray-400">En Consulta</span>
-                    </div>
-                );
-        }
-    };
 
     return (
         <div className="min-h-screen bg-black pt-12">
@@ -157,88 +96,26 @@ export default function PublicOrders() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.3 }}
-                        className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6"
+                        className="grid flex-col gap-4 md:gap-6"
                     >
-                        <AnimatePresence>
-                            {orders.map((order, idx) => (
-                                <motion.div
-                                    key={order.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.4, delay: idx * 0.05 }}
-                                    whileHover={{ y: -4, scale: 1.02 }}
-                                    className="group relative flex flex-col h-full bg-neutral-900/50 hover:bg-neutral-800/80 rounded-3xl overflow-hidden border border-white/5 hover:border-white/10 transition-all duration-300"
-                                >
-                                    <Link to={`/item/${order.itemType}/${order.itemId}`} className="flex flex-col h-full">
-
-                                        {/* Image Section */}
-                                        <div className="relative aspect-square overflow-hidden bg-black/50">
-                                            {order.imageUrl ? (
-                                                <img
-                                                    src={order.imageUrl}
-                                                    alt={order.title}
-                                                    className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110"
-                                                    loading="lazy"
-                                                />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center">
-                                                    <Music className="w-12 h-12 text-white/10" />
-                                                </div>
-                                            )}
-
-                                            {/* Top Gradient Overlay for Badge Contrast */}
-                                            <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                                            {/* Status Badge */}
-                                            <div className="absolute top-3 right-3 z-10">
-                                                {getStatusBadge(order.status)}
-                                            </div>
-                                        </div>
-
-                                        {/* Meta Section */}
-                                        <div className="p-4 flex flex-col flex-grow">
-                                            <div className="flex-grow space-y-1">
-                                                <h3 className="text-white font-bold leading-tight line-clamp-2 text-sm md:text-base group-hover:text-primary transition-colors">
-                                                    {order.title}
-                                                </h3>
-                                                <p className="text-gray-400 text-xs md:text-sm font-medium line-clamp-1">
-                                                    {order.artist}
-                                                </p>
-                                            </div>
-
-                                            <div className="mt-4 flex flex-col md:flex-row md:items-center justify-between pt-4 border-t border-white/5 gap-2 md:gap-0">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-[10px] text-gray-500 font-mono uppercase tracking-wider">
-                                                        {getRelativeTime(order.createdAt)}
-                                                    </span>
-                                                    {order.intent && (
-                                                        <div className="flex items-center gap-1.5">
-                                                            <div className={`w-1.5 h-1.5 rounded-full ${order.intent === 'VENDER' ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                                                            <span className={`text-[9px] font-mono uppercase tracking-widest ${order.intent === 'VENDER' ? 'text-amber-500/80 border-b border-amber-500/20' : 'text-emerald-400/80 border-b border-emerald-500/20'}`}>
-                                                                {order.intent === 'VENDER' ? 'EN VENTA' : 'EN COMPRA'}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <span className="text-[10px] text-white/30 font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    Ver ID <span className="text-primary">{order.itemId}</span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </Link>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
+                        {orders.length > 0 ? (
+                            <AnimatePresence>
+                                {orders.map((order, idx) => (
+                                    <OrderCard
+                                        key={order.id || idx}
+                                        order={order}
+                                        context="public"
+                                    />
+                                ))}
+                            </AnimatePresence>
+                        ) : (
+                            <div className="py-20 flex flex-col items-center justify-center text-center">
+                                <Disc className="w-16 h-16 text-white/10 mb-4 animate-[spin_10s_linear_infinite]" />
+                                <h3 className="text-xl font-display font-black text-white uppercase tracking-widest mb-2">Sin Actividad</h3>
+                                <p className="text-gray-500 font-medium">No hay órdenes públicas registradas aún.</p>
+                            </div>
+                        )}
                     </motion.div>
-                )}
-
-                {/* Empty State */}
-                {!loading && orders.length === 0 && (
-                    <div className="py-24 text-center space-y-4">
-                        <Disc className="w-16 h-16 text-white/10 mx-auto animate-spin-slow" />
-                        <h3 className="text-xl font-bold text-white">El muro está vacío</h3>
-                        <p className="text-gray-400 max-w-sm mx-auto">No hay transacciones registradas todavía en el ecosistema.</p>
-                    </div>
                 )}
             </div>
         </div>

@@ -31,6 +31,8 @@ import {
     ChevronRight,
     Disc
 } from "lucide-react";
+import { SEO } from '@/components/SEO';
+import OrderCard from '@/components/OrderCard';
 import OrderDetailsDrawer from "@/components/OrderDetailsDrawer";
 
 interface OrderDoc {
@@ -292,122 +294,20 @@ export default function AdminOrders() {
                     </div>
                 ) : (
                     <AnimatePresence>
-                        {filteredOrders.map((order, i) => {
-                            const statusConfig = getStatusConfig(order.status);
-                            const StatusIcon = statusConfig.icon;
-
-                            return (
-                                <motion.div
-                                    key={order.id}
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ delay: i * 0.02 }}
-                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); openOrder(order); }}
-                                    className="bg-white/[0.02] border border-white/5 rounded-xl p-4 md:p-5 flex items-center gap-4 hover:border-white/10 hover:bg-white/[0.03] transition-all cursor-pointer group"
-                                >
-                                    {/* Cover Thumbnail */}
-                                    {order.details.cover_image ? (
-                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
-                                            <img src={order.details.cover_image} alt="" className="w-full h-full object-cover" />
-                                        </div>
-                                    ) : (
-                                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-white/5 flex-shrink-0 flex items-center justify-center">
-                                            <Music className="h-5 w-5 text-gray-700" />
-                                        </div>
-                                    )}
-
-                                    {/* Item Summary */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="text-sm font-bold text-white truncate">
-                                                {order.isBatch ? `Lote de ${order.items?.length} Ítems` : `${order.details.artist} — ${order.details.album}`}
-                                            </h3>
-                                        </div>
-                                        <div className="flex items-center gap-3 mt-1">
-                                            {order.order_number && (
-                                                <span className="text-[8px] font-mono text-gray-600">{order.order_number}</span>
-                                            )}
-                                            <span className="text-gray-600 text-[9px] font-bold">{order.user_name}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Intent Badge */}
-                                    <span className={`hidden sm:inline px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border flex-shrink-0 ${order.details.intent === "COMPRAR"
-                                        ? "bg-green-500/10 text-green-400 border-green-500/20"
-                                        : "bg-orange-500/10 text-orange-400 border-orange-500/20"
-                                        }`}>
-                                        {order.details.intent}
-                                    </span>
-
-                                    {/* Discogs Quick Link (Disable for batch or link to first item) */}
-                                    {!order.isBatch && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                window.open(`https://www.discogs.com/search?q=${encodeURIComponent(`${order.details.artist} ${order.details.album}`)}`, "_blank");
-                                            }}
-                                            className="hidden md:flex flex-shrink-0 items-center justify-center w-7 h-7 rounded-md bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 hover:bg-yellow-500 hover:text-black transition-colors"
-                                            title="Buscar en Discogs"
-                                        >
-                                            <Disc className="h-3.5 w-3.5" />
-                                        </button>
-                                    )}
-
-                                    {/* Inline Status Check */}
-                                    <div className="relative flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                                        <button
-                                            onClick={() => setActiveDropdown(activeDropdown === order.id ? null : order.id)}
-                                            disabled={updatingId === order.id}
-                                            className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border flex items-center gap-1 transition-all ${statusConfig.bg} ${statusConfig.color} ${updatingId === order.id ? "opacity-50" : "hover:brightness-110"}`}
-                                        >
-                                            <StatusIcon className="h-3 w-3" />
-                                            <span className="hidden md:inline">{statusConfig.label}</span>
-                                            <ChevronDown className="h-3 w-3 ml-0.5" />
-                                        </button>
-
-                                        <AnimatePresence>
-                                            {activeDropdown === order.id && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: 5 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    exit={{ opacity: 0, y: 5 }}
-                                                    className="absolute top-full right-0 mt-2 w-48 bg-neutral-900 border border-white/10 rounded-xl overflow-hidden z-50 shadow-2xl"
-                                                >
-                                                    {STATUS_OPTIONS.map(option => {
-                                                        const OptionIcon = option.icon;
-                                                        return (
-                                                            <button
-                                                                key={option.value}
-                                                                onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, option.value); setActiveDropdown(null); }}
-                                                                className={`w-full flex items-center gap-3 px-4 py-2.5 transition-all text-left ${order.status === option.value ? "bg-white/5" : "hover:bg-white/5"}`}
-                                                            >
-                                                                <OptionIcon className={`h-3.5 w-3.5 ${option.color}`} />
-                                                                <span className={`text-[9px] font-black uppercase tracking-widest ${order.status === option.value ? option.color : "text-gray-400"}`}>
-                                                                    {option.label}
-                                                                </span>
-                                                                {order.status === option.value && (
-                                                                    <CheckCircle2 className="h-3 w-3 text-primary ml-auto" />
-                                                                )}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
-
-                                    {/* Arrow */}
-                                    <ChevronRight className="h-4 w-4 text-gray-700 group-hover:text-primary transition-colors flex-shrink-0" />
-                                </motion.div>
-                            );
-                        })}
+                        {filteredOrders.map(order => (
+                            <OrderCard
+                                key={order.id}
+                                order={order}
+                                context="admin"
+                                onClick={() => setSelectedOrder(order)}
+                            />
+                        ))}
                     </AnimatePresence>
                 )}
             </div>
 
             {/* ====== Admin Order Detail Drawer ====== */}
-            <OrderDetailsDrawer
+            < OrderDetailsDrawer
                 isOpen={!!selectedOrder}
                 onClose={() => { setSelectedOrder(null); setActiveDropdown(null); }}
                 title={selectedOrder?.order_number || "Detalle de Pedido"}
@@ -650,7 +550,7 @@ export default function AdminOrders() {
                         </div>
                     </>
                 )}
-            </OrderDetailsDrawer>
-        </div>
+            </OrderDetailsDrawer >
+        </div >
     );
 }

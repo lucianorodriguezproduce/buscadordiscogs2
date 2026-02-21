@@ -28,7 +28,9 @@ import { useState, useEffect } from "react";
 import { AlbumCardSkeleton } from "@/components/ui/Skeleton";
 import { Link, useSearchParams } from "react-router-dom";
 import OrderDetailsDrawer from "@/components/OrderDetailsDrawer";
-import { generateWhatsAppLink } from "@/utils/whatsapp";
+import { generateWhatsAppLink } from '@/utils/whatsapp';
+import type { OrderData } from '@/utils/whatsapp';
+import OrderCard from '@/components/OrderCard';
 import { pushWhatsAppContactFromOrder } from "@/utils/analytics";
 
 interface ProfileItem {
@@ -280,26 +282,12 @@ export default function Profile() {
                                                 initial={{ opacity: 0, x: -20 }}
                                                 animate={{ opacity: 1, x: 0 }}
                                                 transition={{ delay: i * 0.05 }}
-                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedOrder(order); }}
-                                                className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 flex items-center gap-6 hover:border-primary/20 transition-all group cursor-pointer"
                                             >
-                                                {order.details.cover_image && (
-                                                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-white/5 flex-shrink-0 border border-white/10">
-                                                        <img src={order.details.cover_image} alt="" className="w-full h-full object-cover" />
-                                                    </div>
-                                                )}
-                                                <div className="flex-1 min-w-0">
-                                                    <h4 className="text-white font-bold truncate">{order.details.artist} - {order.details.album}</h4>
-                                                    <div className="flex flex-wrap items-center gap-3 mt-2">
-                                                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase ${order.details.intent === "COMPRAR" ? "bg-green-500/10 text-green-400" : "bg-orange-500/10 text-orange-400"}`}>
-                                                            {order.details.intent}
-                                                        </span>
-                                                        <span className="text-gray-600 text-[10px] font-bold">{order.details.format} • {order.details.condition}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                                                    {getStatusBadge(order.status)}
-                                                </div>
+                                                <OrderCard
+                                                    order={order}
+                                                    context="profile"
+                                                    onClick={() => setSelectedOrder(order)}
+                                                />
                                             </motion.div>
                                         ))}
                                     </div>
@@ -343,109 +331,13 @@ export default function Profile() {
                                             initial={{ opacity: 0, y: 15 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: i * 0.04 }}
-                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSelectedOrder(order); }}
-                                            className={`bg-white/[0.02] border rounded-[1.5rem] overflow-hidden transition-all group cursor-pointer ${order.admin_offer_price
-                                                ? "border-purple-500/20 hover:border-purple-500/40"
-                                                : "border-white/5 hover:border-primary/20"
-                                                }`}
+                                            className="mb-4"
                                         >
-                                            {/* Main Card */}
-                                            <div className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center gap-6">
-                                                {/* Cover */}
-                                                {order.details.cover_image ? (
-                                                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden bg-white/5 flex-shrink-0 border border-white/10 group-hover:border-primary/30 transition-all">
-                                                        <img src={order.details.cover_image} alt="" className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all duration-500" />
-                                                    </div>
-                                                ) : (
-                                                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white/5 flex-shrink-0 border border-white/10 flex items-center justify-center">
-                                                        <Music className="h-8 w-8 text-gray-700" />
-                                                    </div>
-                                                )}
-
-                                                {/* Details */}
-                                                <div className="flex-1 min-w-0 space-y-3">
-                                                    {/* Order Number */}
-                                                    {order.order_number && (
-                                                        <span className="inline-flex items-center gap-1.5 text-[9px] font-mono font-bold text-gray-600 uppercase tracking-wider">
-                                                            <Hash className="h-3 w-3" />
-                                                            {order.order_number}
-                                                        </span>
-                                                    )}
-
-                                                    <h4 className="text-lg md:text-xl font-display font-black text-white uppercase tracking-tight truncate group-hover:text-primary transition-colors">
-                                                        {order.details.artist} — {order.details.album}
-                                                    </h4>
-
-                                                    <div className="flex flex-wrap items-center gap-3">
-                                                        <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest border ${order.details.intent === "COMPRAR"
-                                                            ? "bg-green-500/10 text-green-400 border-green-500/20"
-                                                            : "bg-orange-500/10 text-orange-400 border-orange-500/20"
-                                                            }`}>
-                                                            {order.details.intent}
-                                                        </span>
-                                                        <span className="flex items-center gap-1 text-gray-500 text-[10px] font-black uppercase">
-                                                            <Tag className="h-3 w-3" /> {order.details.format}
-                                                        </span>
-                                                        <span className="text-gray-600 text-[10px] font-bold uppercase">{order.details.condition}</span>
-                                                        {order.details.price && (
-                                                            <span className="flex items-center gap-1 text-primary text-sm font-black">
-                                                                <DollarSign className="h-3.5 w-3.5" />
-                                                                {order.details.currency === "USD" ? "US$" : "$"}{order.details.price.toLocaleString()}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* Status + Date + Offer */}
-                                                <div className="flex flex-col items-start md:items-end gap-3 flex-shrink-0">
-                                                    {order.details.intent === "COMPRAR" && order.admin_offer_price && (
-                                                        <div className="bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-xl flex flex-col items-end shadow-sm shadow-primary/5">
-                                                            <span className="text-[9px] font-black uppercase tracking-widest text-primary">Oferta</span>
-                                                            <span className="text-sm font-black text-white">
-                                                                {order.admin_offer_currency === "USD" ? "US$" : "$"} {order.admin_offer_price.toLocaleString()}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                    {getStatusBadge(order.status)}
-                                                    <span className="text-gray-700 text-[10px] font-bold flex items-center gap-1.5">
-                                                        <Clock className="h-3.5 w-3.5" /> {formatDate(order.timestamp)}
-                                                    </span>
-                                                    <Link
-                                                        to={`/orden/${order.id}`}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className="mt-1 px-4 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest text-white transition-colors flex items-center gap-2"
-                                                    >
-                                                        <Search className="w-3 h-3" /> Ver Detalle Público
-                                                    </Link>
-                                                </div>
-                                            </div>
-
-                                            {/* Admin Offer Panel — visible when admin has quoted */}
-                                            {order.admin_offer_price && (
-                                                <div className="mx-6 md:mx-8 mb-6 p-5 bg-purple-500/[0.05] border border-purple-500/15 rounded-2xl">
-                                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                                        <div className="space-y-1.5">
-                                                            <div className="flex items-center gap-2">
-                                                                <BadgeDollarSign className="h-4 w-4 text-purple-400" />
-                                                                <span className="text-[10px] font-black uppercase tracking-widest text-purple-400">Cotización Recibida</span>
-                                                            </div>
-                                                            <p className="text-2xl font-display font-black text-white tracking-tight">
-                                                                {order.admin_offer_currency === "USD" ? "US$" : "$"} {order.admin_offer_price.toLocaleString()}
-                                                            </p>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => {
-                                                                pushWhatsAppContactFromOrder(order);
-                                                                window.open(generateWhatsAppLink(order), "_blank");
-                                                            }}
-                                                            className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-green-500/20"
-                                                        >
-                                                            <MessageCircle className="h-4 w-4" />
-                                                            Contactar por WhatsApp
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
+                                            <OrderCard
+                                                order={order}
+                                                context="profile"
+                                                onClick={() => setSelectedOrder(order)}
+                                            />
                                         </motion.div>
                                     ))}
                                 </div>

@@ -159,7 +159,7 @@ export default function AnalyticsDashboard() {
                         <Search className="h-6 w-6 text-green-400" />
                         <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-500">Search Velocity</h3>
                     </div>
-                    <p className="text-5xl font-black text-white">{stats.recentSearches.length}</p>
+                    <p className="text-5xl font-black text-white">{(stats.recentSearches || []).length}</p>
                     <p className="text-xs text-gray-600 mt-2 font-bold uppercase tracking-widest">Unique Queries</p>
                 </Card>
             </div>
@@ -216,7 +216,7 @@ export default function AnalyticsDashboard() {
                         <Search className="h-6 w-6 text-green-400" /> Search Trends
                     </h3>
                     <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-8 space-y-4">
-                        {stats.recentSearches.length > 0 ? (
+                        {(stats.recentSearches || []).length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                                 {stats.recentSearches.map((query, i) => (
                                     <Badge key={i} className="bg-green-500/10 text-green-400 border-green-500/20 px-3 py-1.5 text-xs">

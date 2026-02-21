@@ -51,26 +51,26 @@ export default function PublicOrderView() {
         );
     }
 
-    const items = order.isBatch ? order.items : [
+    const items = order.isBatch ? (order.items || []) : [
         {
-            title: `${order.details.artist} - ${order.details.album}`,
-            artist: order.details.artist,
-            album: order.details.album,
-            cover_image: order.details.cover_image || order.thumbnailUrl,
-            format: order.details.format,
-            condition: order.details.condition,
-            intent: order.details.intent,
+            title: order.details?.artist ? `${order.details.artist} - ${order.details.album}` : (order.title || "Unknown Title"),
+            artist: order.details?.artist || order.artist || "Unknown Artist",
+            album: order.details?.album || order.title || "Unknown Album",
+            cover_image: order.details?.cover_image || order.thumbnailUrl || "https://raw.githubusercontent.com/lucianorodriguezproduce/buscadordiscogs2/refs/heads/main/public/obg.png",
+            format: order.details?.format || "N/A",
+            condition: order.details?.condition || "N/A",
+            intent: order.details?.intent || order.status || "COMPRAR",
         }
     ];
 
     const generateDescription = () => {
         if (!items || items.length === 0) return "Lote de vinilos en Oldie but Goldie";
-        const artists = Array.from(new Set(items.map((i: any) => i.artist))).slice(0, 3);
+        const artists = Array.from(new Set(items.map((i: any) => i.artist || "Varios"))).slice(0, 3);
         const prefix = order.isBatch ? `Lote de ${items.length} ítems.` : "Pieza de colección.";
         return `${prefix} Incluye: ${artists.join(", ")}${artists.length < items.length ? " y más" : ""}.`;
     };
 
-    const titleStr = order.isBatch ? `Lote de ${items.length} discos en Oldie but Goldie` : `${order.details.artist} - ${order.details.album} en Oldie but Goldie`;
+    const titleStr = order.isBatch ? `Lote de ${items.length} discos en Oldie but Goldie` : `${order.details?.artist || "Álbum"} - ${order.details?.album || "Desconocido"} en Oldie but Goldie`;
 
     // Render Schema markup for items
     const schemaMarkup = {
@@ -147,8 +147,8 @@ export default function PublicOrderView() {
                                     </h4>
                                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                                         <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${item.intent === 'COMPRAR'
-                                                ? 'bg-green-500/10 text-green-400 border-green-500/20'
-                                                : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                            ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                            : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                                             }`}>
                                             {item.intent}
                                         </span>
@@ -164,11 +164,11 @@ export default function PublicOrderView() {
                     <div className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/5 flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                <span className="text-primary font-black">{order.user_name.charAt(0)}</span>
+                                <span className="text-primary font-black">{(order.user_name || "C").charAt(0)}</span>
                             </div>
                             <div>
                                 <p className="text-xs text-gray-500 font-bold">Iniciado por</p>
-                                <p className="text-white font-black">{order.user_name}</p>
+                                <p className="text-white font-black">{order.user_name || "Cliente"}</p>
                             </div>
                         </div>
                         <div className="text-right">

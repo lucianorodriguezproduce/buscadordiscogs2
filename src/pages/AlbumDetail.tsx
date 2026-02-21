@@ -206,7 +206,7 @@ export default function AlbumDetail() {
                             <div className="mt-16 relative">
                                 <div className="absolute -left-8 top-2 bottom-2 w-[2px] bg-gradient-to-b from-primary via-primary/50 to-transparent rounded-full" />
                                 <p className="text-gray-400 leading-relaxed italic text-xl font-medium tracking-tight">
-                                    "{album.notes.length > 600 ? album.notes.substring(0, 600) + "..." : album.notes}"
+                                    "{album.notes && album.notes.length > 600 ? album.notes.substring(0, 600) + "..." : (album.notes || "")}"
                                 </p>
                             </div>
                         )}

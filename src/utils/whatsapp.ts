@@ -63,7 +63,9 @@ export const generateWhatsAppLink = (order: OrderData): string => {
     }
 
     if (!order.isBatch && order.details) {
-        message += `\nFormato: ${(order.details.format || "").trim()} | Estado: ${(order.details.condition || "").trim()}`;
+        const format = (order.details?.format || "").trim();
+        const condition = (order.details?.condition || "").trim();
+        message += `\nFormato: ${format} | Estado: ${condition}`;
     }
 
     if (order.admin_offer_price) {

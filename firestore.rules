@@ -3,8 +3,8 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Telemetry - anyone can create, anyone can read
     match /interactions/{document=**} {
-      allow create: if true;
-      allow read: if true;
+      allow create, read: if true;
+      allow delete: if request.auth != null;
     }
     
     // User data - only the owner
@@ -31,9 +31,13 @@ service cloud.firestore {
 
     // Orders - public read, authenticated write/update, unauthenticated create
     match /orders/{document=**} {
-      allow read: if true;
-      allow create: if true;
+      allow read, create: if true;
       allow update, delete: if request.auth != null;
+    }
+
+    // Notifications - authenticated only
+    match /notifications/{document=**} {
+      allow read, write, delete: if request.auth != null;
     }
   }
 }

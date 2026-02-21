@@ -76,7 +76,7 @@ export default function AnalyticsDashboard() {
                 // Fetch Active Orders
                 const ordersQuery = query(
                     collection(db, "orders"),
-                    where("status", "in", ["pending", "quoted", "negotiating"])
+                    where("status", "in", ["pending", "quoted", "negotiating", "counteroffered", "pending_acceptance"])
                 );
                 const ordersSnap = await getDocs(ordersQuery);
                 const activeOrders = ordersSnap.docs.map(d => d.data());
@@ -97,7 +97,7 @@ export default function AnalyticsDashboard() {
                     buyIntent: buyIntentCount,
                     sellIntent: sellIntentCount,
                     potentialVolumeARS: activeOrders.reduce((sum, o: any) => sum + (o.totalPrice || o.details?.price || 0), 0),
-                    realVolumeARS: activeOrders.reduce((sum, o: any) => sum + (o.adminPrice || 0), 0)
+                    realVolumeARS: activeOrders.reduce((sum, o: any) => sum + (o.adminPrice || o.totalPrice || o.details?.price || 0), 0)
                 });
 
             } catch (error) {

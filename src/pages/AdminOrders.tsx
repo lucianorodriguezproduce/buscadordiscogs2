@@ -70,7 +70,8 @@ const STATUS_OPTIONS = [
     { value: "pending", label: "Pendiente", icon: Clock, color: "text-yellow-500", bg: "bg-yellow-500/10 border-yellow-500/20" },
     { value: "quoted", label: "Cotizado", icon: BadgeDollarSign, color: "text-purple-400", bg: "bg-purple-500/10 border-purple-500/20" },
     { value: "negotiating", label: "En Negociación", icon: Handshake, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
-    { value: "pending_acceptance", label: "Pendiente de Aceptación", icon: Clock, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
+    { value: "counteroffered", label: "Contraofertado", icon: Send, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
+    { value: "pending_acceptance", label: "Esperando Cliente", icon: Clock, color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20" },
     { value: "completed", label: "Completado", icon: CheckCircle2, color: "text-green-500", bg: "bg-green-500/10 border-green-500/20" },
     { value: "cancelled", label: "Cancelado", icon: XCircle, color: "text-red-500", bg: "bg-red-500/10 border-red-500/20" },
 ];
@@ -147,7 +148,7 @@ export default function AdminOrders() {
             await updateDoc(doc(db, "orders", order.id), {
                 adminPrice: priceVal,
                 adminCurrency: currencyVal,
-                status: "pending_acceptance"
+                status: "counteroffered"
             });
 
             const currSymbol = currencyVal === "USD" ? "US$" : "$";
@@ -164,7 +165,7 @@ export default function AdminOrders() {
                 ...prev,
                 adminPrice: priceVal,
                 adminCurrency: currencyVal,
-                status: "pending_acceptance"
+                status: "counteroffered"
             } : null);
 
             setQuotePrice("");
@@ -437,11 +438,23 @@ export default function AdminOrders() {
                                         </div>
                                         <button
                                             onClick={() => handleSetAdminPrice(selectedOrder)}
-                                            disabled={quotingId === selectedOrder.id || !quotePrice}
-                                            className="px-4 py-2.5 bg-orange-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-orange-500 transition-all disabled:opacity-40"
+                                            disabled={quotingId === selectedOrder.id || !quotePrice || selectedOrder.adminPrice === parseFloat(quotePrice)}
+                                            className={`px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40 ${selectedOrder.adminPrice && selectedOrder.adminPrice === parseFloat(quotePrice)
+                                                    ? "bg-green-600 text-white"
+                                                    : "bg-orange-600 text-white hover:bg-orange-500"
+                                                }`}
                                         >
-                                            <Send className="h-3.5 w-3.5" />
+                                            {selectedOrder.adminPrice && selectedOrder.adminPrice === parseFloat(quotePrice) ? (
+                                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                            ) : (
+                                                <Send className="h-3.5 w-3.5" />
+                                            )}
                                         </button>
+                                        {selectedOrder.adminPrice && selectedOrder.adminPrice === parseFloat(quotePrice) && (
+                                            <span className="absolute -top-6 right-0 text-[8px] font-black text-green-500 uppercase tracking-widest animate-pulse">
+                                                Precio Guardado ✓
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -499,6 +512,19 @@ export default function AdminOrders() {
             >
                 {selectedOrder && (
                     <>
+                        {/* User Offer Highlight (TAREA 1) */}
+                        <div className="bg-orange-500/5 border border-orange-500/20 rounded-2xl p-6 space-y-2 mb-4">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-orange-400">Oferta Inicial del Usuario</span>
+                            <div className="flex items-center gap-3">
+                                <DollarSign className="h-6 w-6 text-orange-500" />
+                                <span className="text-4xl font-display font-black text-white">
+                                    {selectedOrder.details.price
+                                        ? `${selectedOrder.details.currency === 'USD' ? 'US$' : '$'} ${selectedOrder.details.price.toLocaleString()}`
+                                        : "Sin precio especificado"}
+                                </span>
+                            </div>
+                        </div>
+
                         {/* User Section */}
                         <div className="flex items-center gap-4 bg-white/[0.03] border border-white/5 rounded-xl p-4">
                             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">

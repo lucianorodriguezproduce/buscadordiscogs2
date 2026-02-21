@@ -243,7 +243,7 @@ export default function OrderCard({ order, context, onClick }: OrderCardProps) {
             </div>
 
             {/* Offer Injection for internal contexts */}
-            {context !== 'public' && order.admin_offer_price && (
+            {context !== 'public' && (order.adminPrice || order.admin_offer_price) && (
                 <div className="px-6 md:px-8 pb-6 w-full flex justify-end">
                     {renderPriceOffer()}
                 </div>

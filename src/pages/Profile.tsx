@@ -418,7 +418,7 @@ export default function Profile() {
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
                                             <BadgeDollarSign className="h-4 w-4 text-primary" />
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Precio asignado por Oldie but Goldie</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Oldie but Goldie te ofrece</span>
                                         </div>
                                         <p className="text-3xl font-display font-black text-white tracking-tight">
                                             {selectedOrder.adminCurrency === "USD" ? "US$" : "$"} {selectedOrder.adminPrice.toLocaleString()}

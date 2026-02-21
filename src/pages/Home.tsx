@@ -385,6 +385,7 @@ export default function Home() {
                 cover_image: selectedItem.cover_image || selectedItem.thumb || '',
             },
             timestamp: serverTimestamp(),
+            createdAt: serverTimestamp(),
             status: 'pending',
             type: resolvedIntent // Root type for schema consistency
         };

@@ -15,7 +15,7 @@ export default function PublicOrders() {
 
     useEffect(() => {
         const ordersRef = collection(db, 'orders');
-        const q = query(ordersRef, orderBy('timestamp', 'desc'));
+        const q = query(ordersRef, orderBy('createdAt', 'desc'));
 
         const unsubscribe = onSnapshot(q, (querySnapshot) => {
             const publicOrdersData = querySnapshot.docs.map(doc => {

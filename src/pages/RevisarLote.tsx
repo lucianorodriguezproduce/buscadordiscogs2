@@ -48,6 +48,7 @@ export default function RevisarLote() {
             totalPrice: batchIntent === 'VENDER' ? Number(totalPrice) : null,
             currency: batchIntent === 'VENDER' ? currency : null,
             timestamp: serverTimestamp(),
+            createdAt: serverTimestamp(),
             // Store legacy fields based on the first item to not break simplistic queries immediately
             item_id: loteItems[0]?.id,
             details: {

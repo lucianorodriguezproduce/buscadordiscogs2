@@ -46,6 +46,7 @@ interface OrderDoc {
     item_id: number;
     status: string;
     timestamp: any;
+    createdAt?: any;
     market_reference?: number | null;
     admin_offer_price?: number;
     admin_offer_currency?: string;
@@ -82,6 +83,7 @@ const STATUS_OPTIONS = [
 
 import { Link } from "react-router-dom";
 import { Trash2 } from "lucide-react";
+import { formatDate } from "@/utils/date";
 
 export default function AdminOrders() {
     const { showLoading, hideLoading } = useLoading();
@@ -101,7 +103,7 @@ export default function AdminOrders() {
 
     useEffect(() => {
         showLoading("Sincronizando Base de Pedidos...");
-        const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
+        const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
         const unsub = onSnapshot(q, (snap) => {
             const docs = snap.docs.map(d => ({
                 id: d.id,
@@ -559,6 +561,17 @@ export default function AdminOrders() {
             >
                 {selectedOrder && (
                     <>
+                        {/* Order Metadata */}
+                        <div className="flex flex-col gap-1 mb-6">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                                Pedido ID: {selectedOrder.order_number || selectedOrder.id}
+                            </span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 flex items-center gap-1.5">
+                                <Clock className="h-3 w-3" />
+                                Fecha de creación: {formatDate(selectedOrder.createdAt || selectedOrder.timestamp)}
+                            </span>
+                        </div>
+
                         {/* User Offer Highlight (TAREA 1) */}
                         <div className="bg-orange-500/5 border border-orange-500/20 rounded-2xl p-6 space-y-2 mb-4">
                             <span className="text-[10px] font-black uppercase tracking-widest text-orange-400">Oferta Inicial del Usuario</span>

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import type { OrderData } from '@/utils/whatsapp';
+import { formatDate } from '@/utils/date';
 
 interface OrderCardProps {
     order: any; // Using any or an extended OrderData to catch legacy fields without crashing
@@ -32,22 +33,6 @@ export default function OrderCard({ order, context, onClick }: OrderCardProps) {
     const isOwner = user?.uid === order.user_id;
     const canSeePrice = isAdmin || isOwner;
 
-    // Format relative time safely
-    const getRelativeTime = (timestamp: any) => {
-        if (!timestamp) return "Reciente";
-        try {
-            const date = timestamp.toDate ? timestamp.toDate() : (timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp));
-            const now = new Date();
-            const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-            if (diffInSeconds < 60) return `hace ${diffInSeconds}s`;
-            if (diffInSeconds < 3600) return `hace ${Math.floor(diffInSeconds / 60)}m`;
-            if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)}h`;
-            return `hace ${Math.floor(diffInSeconds / 86400)}d`;
-        } catch {
-            return "Reciente";
-        }
-    };
 
     const getStatusBadge = (status: string) => {
         switch (status) {
@@ -232,7 +217,7 @@ export default function OrderCard({ order, context, onClick }: OrderCardProps) {
                     {/* Time & Public Link Line */}
                     <div className="flex items-center justify-between pt-2">
                         <span className="text-[10px] text-gray-600 font-bold flex items-center gap-1.5 uppercase font-mono">
-                            <Clock className="w-3.5 h-3.5" /> {getRelativeTime(order.timestamp || order.createdAt)}
+                            <Clock className="w-3.5 h-3.5" /> {formatDate(order.createdAt || order.timestamp)}
                         </span>
                         <Link
                             to={`/orden/${order.id}`}

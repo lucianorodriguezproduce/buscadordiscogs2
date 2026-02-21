@@ -28,6 +28,7 @@ import {
     CheckCircle2
 } from "lucide-react";
 import { db } from "@/lib/firebase";
+import { formatDate } from "@/utils/date";
 import { collection, onSnapshot, query, orderBy, where, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { useState, useEffect } from "react";
 import { AlbumCardSkeleton } from "@/components/ui/Skeleton";
@@ -53,6 +54,7 @@ interface OrderItem {
     order_number?: string;
     status: string;
     timestamp: any;
+    createdAt?: any;
     admin_offer_price?: number;
     admin_offer_currency?: string;
     adminPrice?: number;
@@ -135,7 +137,7 @@ export default function Profile() {
         const qOrders = query(
             collection(db, "orders"),
             where("user_id", "==", user.uid),
-            orderBy("timestamp", "desc")
+            orderBy("createdAt", "desc")
         );
         const unsubOrders = onSnapshot(qOrders, (snap) => {
             setOrderItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as OrderItem)));
@@ -638,6 +640,17 @@ export default function Profile() {
             >
                 {selectedOrder && (
                     <>
+                        {/* Order Metadata */}
+                        <div className="flex flex-col gap-1 mb-6">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">
+                                Pedido ID: {selectedOrder.order_number || selectedOrder.id}
+                            </span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 flex items-center gap-1.5">
+                                <Clock className="h-3 w-3" />
+                                Fecha de creación: {formatDate(selectedOrder.createdAt || selectedOrder.timestamp)}
+                            </span>
+                        </div>
+
                         {/* Cover Image */}
                         {selectedOrder.details.cover_image && (
                             <div className="w-full aspect-square max-h-[300px] rounded-2xl overflow-hidden border border-white/10">
@@ -683,10 +696,9 @@ export default function Profile() {
                             </div>
                         )}
 
-                        {/* Date */}
-                        <div className="flex items-center gap-2 text-gray-600 text-xs font-bold">
-                            <Clock className="h-3.5 w-3.5" />
-                            {formatDate(selectedOrder.timestamp)}
+                        <div className="flex items-center gap-2 text-gray-700 text-[10px] font-black uppercase tracking-widest">
+                            <Clock className="h-3 w-3" />
+                            {formatDate(selectedOrder.createdAt || selectedOrder.timestamp)}
                         </div>
 
                         <Link
@@ -698,6 +710,6 @@ export default function Profile() {
                     </>
                 )}
             </OrderDetailsDrawer>
-        </div>
+        </div >
     );
 }

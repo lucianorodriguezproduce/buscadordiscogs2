@@ -14,21 +14,24 @@ export function FloatingCartCounter() {
         <AnimatePresence>
             {totalCount > 0 && (
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.5, y: 100 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.5, y: 100 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                    className="fixed bottom-6 right-6 z-[9999]" // High z-index to stay above everything
+                    initial={{ opacity: 0, y: 50, scale: 0.8 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 50, scale: 0.8 }}
+                    key="cart-counter"
+                    className="fixed bottom-6 right-6 z-[9999]"
                 >
                     <Link
                         to="/revisar-lote"
-                        className="group relative flex items-center justify-center w-16 h-16 bg-black border-2 border-primary rounded-full shadow-[0_0_40px_rgba(204,255,0,0.3)] hover:shadow-[0_0_60px_rgba(204,255,0,0.5)] transition-all duration-500 hover:rotate-12 active:scale-90"
+                        className="group relative flex items-center justify-center w-16 h-16 bg-black border-2 border-primary rounded-full shadow-[0_10px_30px_rgba(204,255,0,0.2)] hover:border-white transition-all hover:scale-110 active:scale-95 overflow-visible"
                     >
-                        {/* Vinyl Icon (Disc) */}
-                        <div className="relative flex items-center justify-center">
-                            <Disc className="h-8 w-8 text-primary animate-pulse group-hover:rotate-180 transition-transform duration-1000" />
-                            <div className="absolute w-2 h-2 bg-black rounded-full border border-primary/30" />
-                        </div>
+                        <motion.div
+                            key={totalCount}
+                            initial={{ scale: 1 }}
+                            animate={{ scale: [1, 1.4, 1] }}
+                            transition={{ duration: 0.5, ease: "easeInOut" }}
+                            className="absolute inset-0 rounded-full bg-primary/20 -z-10"
+                        />
+                        <Disc className={`h-8 w-8 text-primary group-hover:text-white transition-colors ${totalCount > 0 ? 'animate-[spin_4s_linear_infinite]' : ''}`} />
 
                         {/* Red Badge for Count */}
                         <motion.div

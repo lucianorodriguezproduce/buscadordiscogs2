@@ -65,6 +65,16 @@ export default function Home() {
     // Local Auth UI states (only for the manual form)
     const debouncedQuery = useDebounce(query, 300);
     const resultsContainerRef = useRef<HTMLDivElement>(null);
+    const conditionRef = useRef<HTMLDivElement>(null);
+    const actionsRef = useRef<HTMLDivElement>(null);
+    const priceInputRef = useRef<HTMLInputElement>(null);
+
+    const scrollToElement = (ref: React.RefObject<HTMLElement | null>, offset = 100) => {
+        if (ref.current && window.innerWidth < 1024) {
+            const top = ref.current.getBoundingClientRect().top + window.pageYOffset - offset;
+            window.scrollTo({ top, behavior: "smooth" });
+        }
+    };
     // End of the instruction's provided code block
 
     const scrollToTop = () => {
@@ -460,6 +470,10 @@ export default function Home() {
         if (selectedIntent === "VENDER") {
             fetchMarketPrice();
             setStep(2); // price step
+            setTimeout(() => {
+                scrollToElement(actionsRef, 80);
+                priceInputRef.current?.focus();
+            }, 100);
             return;
         }
 
@@ -818,10 +832,10 @@ export default function Home() {
                         key="steps-container"
                         initial={{ opacity: 0, y: 40 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="space-y-12 md:space-y-16 w-full"
+                        className="space-y-8 md:space-y-16 w-full"
                     >
                         <header className="text-center md:text-left">
-                            <h2 className="text-3xl md:text-5xl font-display font-black text-white uppercase tracking-tighter">Detalle de Obra</h2>
+                            <h2 className="text-2xl md:text-5xl font-display font-black text-white uppercase tracking-tighter">Detalle de Obra</h2>
                         </header>
 
                         {/* Collector Receipt View Extracted Logic */}
@@ -975,15 +989,18 @@ export default function Home() {
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="space-y-12"
+                                className="space-y-8 md:space-y-12"
                             >
-                                <div className="space-y-6">
+                                <div className="space-y-4 md:space-y-6">
                                     <label className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500 italic block px-4"> [ 01 ] Seleccionar Formato </label>
                                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                                         {(["VINILO", "CD", "CASSETTE", "OTROS"] as Format[]).map(f => (
                                             <button
                                                 key={f}
-                                                onClick={() => setFormat(f)}
+                                                onClick={() => {
+                                                    setFormat(f);
+                                                    setTimeout(() => scrollToElement(conditionRef, 120), 50);
+                                                }}
                                                 className={`py-5 rounded-2xl text-xs font-black tracking-widest border-2 transition-all ${format === f ? 'bg-primary border-primary text-black' : 'bg-white/5 border-white/5 text-gray-500'}`}
                                             >
                                                 {f}
@@ -992,13 +1009,16 @@ export default function Home() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-6">
+                                <div className="space-y-4 md:space-y-6" ref={conditionRef}>
                                     <label className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-500 italic block px-4"> [ 02 ] Estado </label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         {(["NUEVO", "USADO"] as Condition[]).map(c => (
                                             <button
                                                 key={c}
-                                                onClick={() => setCondition(c)}
+                                                onClick={() => {
+                                                    setCondition(c);
+                                                    setTimeout(() => scrollToElement(actionsRef, 100), 50);
+                                                }}
                                                 className={`py-5 rounded-2xl text-xs font-black tracking-widest border-2 transition-all ${condition === c ? 'bg-primary border-primary text-black' : 'bg-white/5 border-white/5 text-gray-500'}`}
                                             >
                                                 {c === "NUEVO" ? "NUEVO / MINT" : "USADO / VG+"}
@@ -1008,7 +1028,7 @@ export default function Home() {
                                 </div>
 
                                 {format && condition && (
-                                    <div className="pt-8 border-t border-white/5 space-y-4">
+                                    <div className="pt-8 border-t border-white/5 space-y-4" ref={actionsRef}>
                                         <div className="flex flex-col gap-4">
                                             <button
                                                 onClick={() => {
@@ -1082,6 +1102,7 @@ export default function Home() {
                                             {currency === "ARS" ? "$" : "US$"}
                                         </span>
                                         <input
+                                            ref={priceInputRef}
                                             id="sell_price"
                                             name="price"
                                             type="number"
@@ -1102,6 +1123,8 @@ export default function Home() {
                                 >
                                     Añadir Lote de Venta (+)
                                 </button>
+
+                                <div ref={actionsRef} />
 
                                 <button onClick={() => { setIntent(null); setStep(1); }} className="w-full text-[10px] font-black uppercase text-gray-700 hover:text-white transition-colors">Atrás</button>
                             </motion.div>

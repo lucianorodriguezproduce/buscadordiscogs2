@@ -126,7 +126,9 @@ export default function Profile() {
         const unsubWantlist = onSnapshot(qWantlist, (snap) => {
             setWantlistItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProfileItem)));
             setLoading(false);
-            if (!ordersLoading) hideLoading();
+        }, (err) => {
+            console.error("Wantlist snapshot error:", err);
+            setLoading(false);
         });
 
         // Fetch Orders (from the global orders collection, filtered by user_id)
@@ -138,7 +140,9 @@ export default function Profile() {
         const unsubOrders = onSnapshot(qOrders, (snap) => {
             setOrderItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as OrderItem)));
             setOrdersLoading(false);
-            if (!loading) hideLoading();
+        }, (err) => {
+            console.error("Orders snapshot error:", err);
+            setOrdersLoading(false);
         });
 
         return () => {
@@ -147,6 +151,13 @@ export default function Profile() {
             unsubOrders();
         };
     }, [user]);
+
+    // Unified Global Loader Management for Profile fetching
+    useEffect(() => {
+        if (!loading && !ordersLoading) {
+            hideLoading();
+        }
+    }, [loading, ordersLoading]);
 
     const removeItem = async (type: "collection" | "wantlist", id: string) => {
         if (!user) return;

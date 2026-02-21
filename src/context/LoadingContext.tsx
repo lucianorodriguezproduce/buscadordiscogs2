@@ -13,14 +13,28 @@ const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 export function LoadingProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('Procesando...');
+    const [timerId, setTimerId] = useState<any>(null);
 
     const showLoading = (msg: string = 'Procesando...') => {
+        // Clear any existing timer
+        if (timerId) clearTimeout(timerId);
+
         setMessage(msg);
         setIsLoading(true);
+
+        // Safety Timeout: 8 seconds
+        const newTimer = setTimeout(() => {
+            setIsLoading(false);
+            console.warn('Loading safety timeout reached (8s). Forcing closure.');
+        }, 8000);
+
+        setTimerId(newTimer);
     };
 
     const hideLoading = () => {
+        if (timerId) clearTimeout(timerId);
         setIsLoading(false);
+        setTimerId(null);
     };
 
     return (

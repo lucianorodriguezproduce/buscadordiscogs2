@@ -113,6 +113,10 @@ export default function AdminOrders() {
             setOrders(docs);
             setLoading(false);
             hideLoading();
+        }, (err) => {
+            console.error("Orders snapshot error:", err);
+            setLoading(false);
+            hideLoading();
         });
         return () => unsub();
     }, []);

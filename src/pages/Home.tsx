@@ -51,7 +51,6 @@ export default function Home() {
     const [publicOrder, setPublicOrder] = useState<any>(null); // For rendering the Collector Receipt
     const [currentPage, setCurrentPage] = useState(1);
     const [hasMore, setHasMore] = useState(false);
-    const [showToast, setShowToast] = useState(false);
 
     // Local Auth UI states (only for the manual form)
     const [email, setEmail] = useState("");
@@ -104,11 +103,6 @@ export default function Home() {
                     format,
                     condition
                 });
-
-                // Show toast only on first addition of this item
-                if (!existing) {
-                    setShowToast(true);
-                }
             }
         }
     }, [format, condition, selectedItem, loteItems, addItemToBatch]);
@@ -1028,15 +1022,19 @@ export default function Home() {
                                 </div>
 
                                 {format && condition && (
-                                    <div className="pt-8 border-t border-white/5 space-y-4" ref={actionsRef}>
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="pt-8 border-t border-white/5 space-y-12"
+                                        ref={actionsRef}
+                                    >
                                         <div className="flex flex-col gap-4">
                                             <button
                                                 onClick={() => {
-                                                    setShowToast(false);
                                                     handleResetSelection();
                                                     scrollToTop();
                                                 }}
-                                                className="w-full py-6 rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 transition-all bg-white/10 text-white hover:bg-white/20"
+                                                className="w-full py-6 rounded-2xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-2 transition-all bg-white/5 border border-white/10 text-white hover:bg-white/10"
                                             >
                                                 + Añadir otro ítem al lote
                                             </button>
@@ -1047,7 +1045,40 @@ export default function Home() {
                                                 FINALIZAR MI PEDIDO
                                             </button>
                                         </div>
-                                    </div>
+
+                                        {/* Recommendations Section - Nested here for better flow */}
+                                        {recommendations.length > 0 && (
+                                            <div className="pt-12 fade-in w-full border-t border-white/5">
+                                                <h4 className="text-xl md:text-2xl font-display font-black text-white italic uppercase tracking-tighter mb-4 md:mb-6 pl-2 border-l-4 border-primary">
+                                                    Otros tesoros que podrían interesarte
+                                                </h4>
+                                                <div className="flex overflow-x-auto gap-4 md:gap-6 pb-6 hide-scrollbar snap-x snap-mandatory">
+                                                    {recommendations.map((rec) => (
+                                                        <button
+                                                            key={`rec-${rec.id}`}
+                                                            onClick={() => navigate(`/item/${rec.type}/${rec.id}`)}
+                                                            className="w-[280px] md:w-[320px] flex-shrink-0 relative overflow-hidden bg-white/[0.03] border-2 border-white/5 hover:border-white/20 rounded-2xl md:rounded-[2rem] transition-all group snap-start text-left flex flex-col items-start p-4 hover:bg-white/[0.05]"
+                                                        >
+                                                            <div className="w-full aspect-square rounded-xl overflow-hidden bg-black mb-4 relative shadow-lg">
+                                                                <img src={rec.cover_image || rec.thumb} alt={rec.title} className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-transform duration-700 group-hover:scale-105" />
+                                                            </div>
+                                                            <h5 className="text-lg font-bold font-display italic text-white truncate w-full group-hover:text-primary transition-colors">
+                                                                {rec.title.split(' - ')[1] || rec.title}
+                                                            </h5>
+                                                            <span className="text-xs font-black text-gray-500 uppercase tracking-widest leading-none truncate w-full mt-1">
+                                                                {rec.title.split(' - ')[0]}
+                                                            </span>
+                                                        </button>
+                                                    ))}
+                                                    {isLoadingRecommendations && (
+                                                        <div className="w-[280px] md:w-[320px] flex-shrink-0 flex items-center justify-center snap-start">
+                                                            <div className="h-6 w-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </motion.div>
                                 )}
                             </motion.div>
                         )}
@@ -1196,75 +1227,7 @@ export default function Home() {
                             </motion.div>
                         )}
 
-                        {/* Inline Toast Notification */}
-                        <AnimatePresence>
-                            {showToast && (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.9, y: -20 }}
-                                    className="bg-[#111] border border-primary/30 shadow-[0_0_40px_rgba(204,255,0,0.15)] rounded-[2rem] p-6 max-w-lg mx-auto w-full mt-12 mb-4"
-                                >
-                                    <div className="text-center space-y-4">
-                                        <div className="flex items-center justify-center gap-3">
-                                            <CheckCircle2 className="text-primary h-6 w-6" />
-                                            <span className="text-white font-black uppercase tracking-widest text-sm text-center">Ítem añadido al lote</span>
-                                        </div>
-                                        <div className="flex flex-col gap-2 pt-2">
-                                            <button
-                                                onClick={() => navigate('/revisar-lote')}
-                                                className="w-full bg-primary text-black py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] transition-all"
-                                            >
-                                                Ir a finalizar lote
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setShowToast(false);
-                                                    handleResetSelection();
-                                                    scrollToTop();
-                                                }}
-                                                className="w-full bg-white/5 border border-white/10 text-white py-4 rounded-xl font-black uppercase tracking-widest text-xs hover:bg-white/10 transition-all"
-                                            >
-                                                Seguir buscando
-                                            </button>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-
-                        {/* Recommendations Section - Repositioned at the bottom */}
-                        {selectedItem && recommendations.length > 0 && (
-                            <div className="pt-16 pb-8 md:pt-24 md:pb-12 fade-in w-full border-t border-white/5 mt-16">
-                                <h4 className="text-xl md:text-2xl font-display font-black text-white italic uppercase tracking-tighter mb-4 md:mb-6 pl-2 border-l-4 border-primary">
-                                    Otros tesoros que podrían interesarte
-                                </h4>
-                                <div className="flex overflow-x-auto gap-4 md:gap-6 pb-6 hide-scrollbar snap-x snap-mandatory">
-                                    {recommendations.map((rec) => (
-                                        <button
-                                            key={`rec-${rec.id}`}
-                                            onClick={() => navigate(`/item/${rec.type}/${rec.id}`)}
-                                            className="w-[280px] md:w-[320px] flex-shrink-0 relative overflow-hidden bg-white/[0.03] border-2 border-white/5 hover:border-white/20 rounded-2xl md:rounded-[2rem] transition-all group snap-start text-left flex flex-col items-start p-4 hover:bg-white/[0.05]"
-                                        >
-                                            <div className="w-full aspect-square rounded-xl overflow-hidden bg-black mb-4 relative shadow-lg">
-                                                <img src={rec.cover_image || rec.thumb} alt={rec.title} className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-transform duration-700 group-hover:scale-105" />
-                                            </div>
-                                            <h5 className="text-lg font-bold font-display italic text-white truncate w-full group-hover:text-primary transition-colors">
-                                                {rec.title.split(' - ')[1] || rec.title}
-                                            </h5>
-                                            <span className="text-xs font-black text-gray-500 uppercase tracking-widest leading-none truncate w-full mt-1">
-                                                {rec.title.split(' - ')[0]}
-                                            </span>
-                                        </button>
-                                    ))}
-                                    {isLoadingRecommendations && (
-                                        <div className="w-[280px] md:w-[320px] flex-shrink-0 flex items-center justify-center snap-start">
-                                            <div className="h-6 w-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
+                        {/* Previous recommendation block removed from here as it's now nested or only shown at the very end if needed */}
                     </motion.div>
                 )}
             </AnimatePresence>

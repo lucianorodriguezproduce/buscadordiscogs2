@@ -28,7 +28,7 @@ import {
     CheckCircle2
 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { getReadableDate } from "@/utils/date";
+import { formatDate, getReadableDate } from "@/utils/date";
 import { collection, onSnapshot, query, orderBy, where, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { useState, useEffect } from "react";
 import { AlbumCardSkeleton } from "@/components/ui/Skeleton";
@@ -245,13 +245,12 @@ export default function Profile() {
     ];
 
     const formatDate = (timestamp: any) => {
-        if (!timestamp) return "Sincronizando con el servidor...";
+        if (!timestamp) return "Reciente";
         try {
-            const dateObj = timestamp.toDate ? timestamp.toDate() : (timestamp instanceof Date ? timestamp : new Date(timestamp));
-            if (isNaN(dateObj.getTime())) return "Sincronizando con el servidor...";
-            return dateObj.toLocaleString('es-AR');
-        } catch (e) {
-            return "Sincronizando con el servidor...";
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            return date.toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
+        } catch {
+            return "Reciente";
         }
     };
 

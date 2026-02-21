@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/AuthContext";
+import { useLoading } from "@/context/LoadingContext";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
@@ -72,6 +73,7 @@ interface OrderItem {
 
 export default function Profile() {
     const { user, isAdmin } = useAuth();
+    const { showLoading, hideLoading } = useLoading();
     const [activeTab, setActiveTab] = useState<"overview" | "orders" | "wantlist">("overview");
 
     // Firestore Data State
@@ -105,6 +107,8 @@ export default function Profile() {
     useEffect(() => {
         if (!user) return;
 
+        showLoading("Sincronizando Perfil de Coleccionista...");
+
         // Fetch Collection
         const qArchive = query(
             collection(db, "users", user.uid, "collection"),
@@ -122,6 +126,7 @@ export default function Profile() {
         const unsubWantlist = onSnapshot(qWantlist, (snap) => {
             setWantlistItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as ProfileItem)));
             setLoading(false);
+            if (!ordersLoading) hideLoading();
         });
 
         // Fetch Orders (from the global orders collection, filtered by user_id)
@@ -133,6 +138,7 @@ export default function Profile() {
         const unsubOrders = onSnapshot(qOrders, (snap) => {
             setOrderItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as OrderItem)));
             setOrdersLoading(false);
+            if (!loading) hideLoading();
         });
 
         return () => {
@@ -149,6 +155,7 @@ export default function Profile() {
 
     const handleAcceptProposal = async (order: OrderItem) => {
         if (!user) return;
+        showLoading("Confirmando trato...");
         setIsNegotiating(true);
         try {
             await updateDoc(doc(db, "orders", order.id), {
@@ -172,6 +179,7 @@ export default function Profile() {
             alert("Hubo un error al procesar la aceptación.");
         } finally {
             setIsNegotiating(false);
+            hideLoading();
         }
     };
 
@@ -179,6 +187,7 @@ export default function Profile() {
         const priceVal = parseFloat(counterOfferPrice);
         if (isNaN(priceVal) || priceVal <= 0) return;
 
+        showLoading("Enviando contraoferta...");
         setIsNegotiating(true);
         try {
             await updateDoc(doc(db, "orders", order.id), {
@@ -205,6 +214,7 @@ export default function Profile() {
             alert("Hubo un error al enviar la contraoferta.");
         } finally {
             setIsNegotiating(false);
+            hideLoading();
         }
     };
 

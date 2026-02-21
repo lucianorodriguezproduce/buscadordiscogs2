@@ -11,6 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useUserCollection } from "@/hooks/useUserCollection";
 import { useTelemetry } from "@/context/TelemetryContext";
 import { useEffect } from "react";
+import { useLoading } from "@/context/LoadingContext";
 
 export default function AlbumDetail() {
     const { id } = useParams<{ id: string }>();
@@ -18,6 +19,7 @@ export default function AlbumDetail() {
     const { hasItem: isInCollection, toggleItem: toggleCollection } = useUserCollection("collection");
     const { hasItem: isInWantlist, toggleItem: toggleWantlist } = useUserCollection("wantlist");
     const { trackEvent } = useTelemetry();
+    const { showLoading, hideLoading } = useLoading();
 
     const { data: album, isLoading, error } = useQuery({
         queryKey: ["release", id],
@@ -96,7 +98,16 @@ export default function AlbumDetail() {
                     <div className="flex flex-col gap-6">
                         <div className="grid grid-cols-2 gap-4">
                             <Button
-                                onClick={() => user ? toggleCollection(album.id.toString(), { title: album.title, cover_image: album.images?.[0]?.uri || album.thumb }) : alert("Por favor, sincroniza para coleccionar.")}
+                                onClick={async () => {
+                                    if (!user) return alert("Por favor, sincroniza para coleccionar.");
+                                    const isAdding = !isInCollection(album.id.toString());
+                                    showLoading(isAdding ? "Archivando en Colección..." : "Removiendo de Colección...");
+                                    try {
+                                        await toggleCollection(album.id.toString(), { title: album.title, cover_image: album.images?.[0]?.uri || album.thumb });
+                                    } finally {
+                                        hideLoading();
+                                    }
+                                }}
                                 className={`h-20 text-lg font-black transition-all transform hover:-translate-y-2 rounded-2xl shadow-xl select-none overflow-hidden relative group ${isInCollection(album.id.toString())
                                     ? "bg-white text-black border-2 border-primary"
                                     : "bg-primary text-black hover:bg-white shadow-primary/10"
@@ -106,7 +117,16 @@ export default function AlbumDetail() {
                                 <span className="relative z-10">{isInCollection(album.id.toString()) ? "Archivado" : "Coleccionar"}</span>
                             </Button>
                             <Button
-                                onClick={() => user ? toggleWantlist(album.id.toString(), { title: album.title, cover_image: album.images?.[0]?.uri || album.thumb }) : alert("Por favor, sincroniza para tu lista de deseos.")}
+                                onClick={async () => {
+                                    if (!user) return alert("Por favor, sincroniza para tu lista de deseos.");
+                                    const isAdding = !isInWantlist(album.id.toString());
+                                    showLoading(isAdding ? "Buscando en Favoritos..." : "Removiendo de Favoritos...");
+                                    try {
+                                        await toggleWantlist(album.id.toString(), { title: album.title, cover_image: album.images?.[0]?.uri || album.thumb });
+                                    } finally {
+                                        hideLoading();
+                                    }
+                                }}
                                 variant="outline"
                                 className={`h-20 text-lg font-black transition-all transform hover:-translate-y-2 rounded-2xl bg-black/40 shadow-xl select-none group ${isInWantlist(album.id.toString())
                                     ? "border-secondary text-secondary bg-secondary/10"

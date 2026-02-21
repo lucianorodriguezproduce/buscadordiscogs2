@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingBag, X, CheckCircle2, MessageCircle, Mail, Layers, ChevronLeft } from "lucide-react";
 import { useLote } from "@/context/LoteContext";
 import { useAuth } from "@/context/AuthContext";
+import { useLoading } from "@/context/LoadingContext";
 import { authenticateUser, signInWithGoogle } from "@/lib/auth";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -13,9 +14,9 @@ import { generateWhatsAppLink } from "@/utils/whatsapp";
 export default function RevisarLote() {
     const { loteItems, toggleItem, clearLote, totalCount } = useLote();
     const { user } = useAuth();
+    const { showLoading, hideLoading, isLoading: isSubmitting } = useLoading();
     const navigate = useNavigate();
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [submittedOrder, setSubmittedOrder] = useState<any>(null);
     const [email, setEmail] = useState("");
@@ -109,7 +110,7 @@ export default function RevisarLote() {
             return;
         }
         if (user) {
-            setIsSubmitting(true);
+            showLoading("Procesando tu Pedido...");
             try {
                 await performSubmission(user.uid);
                 setIsSuccess(true);
@@ -117,7 +118,7 @@ export default function RevisarLote() {
                 console.error("Submission error:", error);
                 alert("Error al procesar el lote.");
             } finally {
-                setIsSubmitting(false);
+                hideLoading();
             }
         }
         // If not user, UI naturally drops down to Auth form
@@ -132,7 +133,7 @@ export default function RevisarLote() {
             alert("Debes ingresar un precio pretendido válido para vender el lote.");
             return;
         }
-        setIsSubmitting(true);
+        showLoading("Sincronizando con Google...");
         try {
             const googleUser = await signInWithGoogle();
             if (googleUser) {
@@ -143,7 +144,7 @@ export default function RevisarLote() {
             console.error("Google Auth error:", error);
             alert("Error al vincular con Google.");
         } finally {
-            setIsSubmitting(false);
+            hideLoading();
         }
     };
 
@@ -159,7 +160,7 @@ export default function RevisarLote() {
             return;
         }
 
-        setIsSubmitting(true);
+        showLoading("Autenticando usuario...");
         try {
             const loggedUser = await authenticateUser(email, password);
             if (loggedUser) {
@@ -170,7 +171,7 @@ export default function RevisarLote() {
             console.error("Manual Auth error:", error);
             alert("Error en autenticación. Verifique sus credenciales.");
         } finally {
-            setIsSubmitting(false);
+            hideLoading();
         }
     };
 
@@ -231,32 +232,6 @@ export default function RevisarLote() {
 
     return (
         <div className="max-w-4xl mx-auto py-8 md:py-16 px-4 font-sans space-y-12">
-
-            <AnimatePresence>
-                {isSubmitting && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md"
-                    >
-                        <div className="bg-[#0A0A0A] border border-white/10 p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-6 max-w-sm w-full mx-4 text-center">
-                            <div className="relative w-16 h-16">
-                                <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin"></div>
-                                <div className="absolute inset-2 rounded-full border-r-2 border-white/20 animate-spin flex items-center justify-center" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}>
-                                    <ShoppingBag className="w-5 h-5 text-primary/50" />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="text-xl font-display font-black text-white uppercase tracking-tighter">Procesando tu Pedido</h3>
-                                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest leading-relaxed">
-                                    Por favor no cierres esta ventana. Estamos registrando la información...
-                                </p>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
 
             <header className="flex items-center gap-4 mb-8">
                 <button

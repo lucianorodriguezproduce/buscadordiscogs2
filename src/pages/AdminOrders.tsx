@@ -34,6 +34,7 @@ import {
 import { SEO } from '@/components/SEO';
 import OrderCard from '@/components/OrderCard';
 import OrderDetailsDrawer from "@/components/OrderDetailsDrawer";
+import { useLoading } from "@/context/LoadingContext";
 
 interface OrderDoc {
     id: string;
@@ -83,6 +84,7 @@ import { Link } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 
 export default function AdminOrders() {
+    const { showLoading, hideLoading } = useLoading();
     const [orders, setOrders] = useState<OrderDoc[]>([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -98,6 +100,7 @@ export default function AdminOrders() {
     const [quotingId, setQuotingId] = useState<string | null>(null);
 
     useEffect(() => {
+        showLoading("Sincronizando Base de Pedidos...");
         const q = query(collection(db, "orders"), orderBy("timestamp", "desc"));
         const unsub = onSnapshot(q, (snap) => {
             const docs = snap.docs.map(d => ({
@@ -109,6 +112,7 @@ export default function AdminOrders() {
             } as OrderDoc));
             setOrders(docs);
             setLoading(false);
+            hideLoading();
         });
         return () => unsub();
     }, []);
@@ -128,6 +132,7 @@ export default function AdminOrders() {
     // I will remove it if it was added. Let me check the file content first.
 
     const handleStatusChange = async (orderId: string, newStatus: string) => {
+        showLoading("Actualizando estado...");
         setUpdatingId(orderId);
         try {
             await updateDoc(doc(db, "orders", orderId), { status: newStatus });
@@ -155,6 +160,7 @@ export default function AdminOrders() {
         } finally {
             setUpdatingId(null);
             setActiveDropdown(null);
+            hideLoading();
         }
     };
 
@@ -163,6 +169,7 @@ export default function AdminOrders() {
         const currencyVal = quoteCurrency || "ARS";
         if (!priceVal || priceVal <= 0) return;
 
+        showLoading("Definiendo precio...");
         setQuotingId(order.id);
         try {
             await updateDoc(doc(db, "orders", order.id), {
@@ -193,6 +200,7 @@ export default function AdminOrders() {
             console.error("Error setting admin price:", error);
         } finally {
             setQuotingId(null);
+            hideLoading();
         }
     };
 
@@ -201,6 +209,7 @@ export default function AdminOrders() {
         const currencyVal = quoteCurrency || "ARS";
         if (!priceVal || priceVal <= 0) return;
 
+        showLoading("Enviando cotización...");
         setQuotingId(order.id);
         try {
             await updateDoc(doc(db, "orders", order.id), {
@@ -232,6 +241,7 @@ export default function AdminOrders() {
             console.error("Error sending quote:", error);
         } finally {
             setQuotingId(null);
+            hideLoading();
         }
     };
 

@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import { ChevronLeft, Clock, User, Share2, BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useLoading } from "@/context/LoadingContext";
+import { useEffect } from "react";
 
 interface Article {
     category: string;
@@ -20,6 +22,7 @@ interface Article {
 
 export default function ArticleDetail() {
     const { id } = useParams();
+    const { showLoading, hideLoading } = useLoading();
 
     const { data: article, isLoading } = useQuery({
         queryKey: ['article', id],
@@ -34,13 +37,17 @@ export default function ArticleDetail() {
         }
     });
 
+    useEffect(() => {
+        if (isLoading) {
+            showLoading("Cargando Artículo...");
+        } else {
+            hideLoading();
+        }
+        return () => hideLoading();
+    }, [isLoading]);
+
     if (isLoading) {
-        return (
-            <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-6">
-                <BookOpen className="h-12 w-12 text-primary animate-pulse" />
-                <p className="text-gray-500 font-black uppercase tracking-widest text-xs">Cargando Artículo...</p>
-            </div>
-        );
+        return null;
     }
 
     if (!article) {

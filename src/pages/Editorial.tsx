@@ -5,6 +5,7 @@ import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query, where, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useLoading } from "@/context/LoadingContext";
 
 interface Article {
     id: string;
@@ -20,12 +21,14 @@ interface Article {
 }
 
 export default function Editorial() {
+    const { showLoading, hideLoading } = useLoading();
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(true);
     const [email, setEmail] = useState("");
     const [isSubscribing, setIsSubscribing] = useState(false);
 
     useEffect(() => {
+        showLoading("Sincronizando Grilla Editorial...");
         const q = query(
             collection(db, "editorial"),
             where("status", "==", "published"),
@@ -34,9 +37,11 @@ export default function Editorial() {
         const unsub = onSnapshot(q, (snap) => {
             setArticles(snap.docs.map(d => ({ id: d.id, ...d.data() } as Article)));
             setLoading(false);
+            hideLoading();
         }, (error) => {
             console.error("Editorial listener error:", error);
             setLoading(false);
+            hideLoading();
         });
         return unsub;
     }, []);
@@ -57,6 +62,7 @@ export default function Editorial() {
             alert("Error de conexión. Reinicializando.");
         } finally {
             setIsSubscribing(false);
+            hideLoading();
         }
     };
 
@@ -64,12 +70,7 @@ export default function Editorial() {
     const others = articles.filter(a => a.id !== featured?.id);
 
     if (loading) {
-        return (
-            <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-6">
-                <BookOpen className="h-12 w-12 text-primary animate-pulse" />
-                <p className="text-gray-500 font-black uppercase tracking-widest text-xs">Sincronizando Grilla Editorial...</p>
-            </div>
-        );
+        return null;
     }
 
     const handleSeed = async () => {

@@ -4,6 +4,7 @@ import { collection, query, orderBy, limit, getDocs, Timestamp, where } from "fi
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Activity, Globe, Search, ShoppingBag, PieChart, DollarSign, TrendingUp, BadgeDollarSign } from "lucide-react";
+import { useLoading } from "@/context/LoadingContext";
 
 interface InteractionEvent {
     id: string;
@@ -19,6 +20,7 @@ interface InteractionEvent {
 }
 
 export default function AnalyticsDashboard() {
+    const { showLoading, hideLoading } = useLoading();
     const [events, setEvents] = useState<InteractionEvent[]>([]);
     const [stats, setStats] = useState({
         totalViews: 0,
@@ -38,6 +40,7 @@ export default function AnalyticsDashboard() {
 
     useEffect(() => {
         const fetchAnalytics = async () => {
+            showLoading("Compilando Inteligencia de Mercado...");
             try {
                 // Fetch last 100 interactions
                 const q = query(
@@ -113,6 +116,7 @@ export default function AnalyticsDashboard() {
                 console.error("Error fetching analytics:", error);
             } finally {
                 setLoading(false);
+                hideLoading();
             }
         };
 
@@ -126,7 +130,7 @@ export default function AnalyticsDashboard() {
     };
 
     if (loading) {
-        return <div className="p-20 text-center text-gray-500 font-mono animate-pulse">ESTABLISHING UPLINK...</div>;
+        return null;
     }
 
     return (

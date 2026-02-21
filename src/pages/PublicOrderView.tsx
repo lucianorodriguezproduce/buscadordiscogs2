@@ -4,12 +4,14 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { SEO } from "@/components/SEO";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Music, Disc, Loader2, Lock } from "lucide-react";
+import { ChevronLeft, Music, Disc, Lock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useLoading } from "@/context/LoadingContext";
 
 export default function PublicOrderView() {
     const { id } = useParams<{ id: string }>();
     const { user, isAdmin } = useAuth();
+    const { showLoading, hideLoading } = useLoading();
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -19,6 +21,7 @@ export default function PublicOrderView() {
     useEffect(() => {
         const fetchOrder = async () => {
             if (!id) return;
+            showLoading("Localizando Lote...");
             try {
                 const docRef = doc(db, "orders", id);
                 const docSnap = await getDoc(docRef);
@@ -29,6 +32,7 @@ export default function PublicOrderView() {
                 console.error("Error fetching order:", error);
             } finally {
                 setLoading(false);
+                hideLoading();
             }
         };
 
@@ -36,11 +40,7 @@ export default function PublicOrderView() {
     }, [id]);
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-black flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
-            </div>
-        );
+        return null;
     }
 
     if (!order) {

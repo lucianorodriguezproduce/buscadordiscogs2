@@ -3,7 +3,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/context/AuthContext";
 import { TelemetryProvider } from "@/context/TelemetryContext";
 import { LoteProvider } from "@/context/LoteContext";
-import { FloatingLoteWidget } from "@/components/FloatingLoteWidget";
+import { LoadingProvider } from "@/context/LoadingContext";
+import { FloatingCartCounter } from "@/components/FloatingCartCounter";
+import { LoadingOverlay } from "@/components/ui/LoadingOverlay";
 import Layout from "@/components/Layout/Layout";
 import Login from "@/pages/Login";
 import Home from "@/pages/Home";
@@ -36,6 +38,8 @@ const queryClient = new QueryClient({
 function AppContent() {
   return (
     <BrowserRouter>
+      <LoadingOverlay />
+      <FloatingCartCounter />
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
@@ -73,13 +77,15 @@ function AppContent() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TelemetryProvider>
-          <LoteProvider>
-            <AppContent />
-          </LoteProvider>
-        </TelemetryProvider>
-      </AuthProvider>
+      <LoadingProvider>
+        <AuthProvider>
+          <TelemetryProvider>
+            <LoteProvider>
+              <AppContent />
+            </LoteProvider>
+          </TelemetryProvider>
+        </AuthProvider>
+      </LoadingProvider>
     </QueryClientProvider>
   );
 }

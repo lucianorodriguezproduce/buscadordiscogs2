@@ -12,8 +12,11 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLoading } from "@/context/LoadingContext";
+import { useEffect } from "react";
 
 export default function Login() {
+    const { showLoading, hideLoading } = useLoading();
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -29,6 +32,7 @@ export default function Login() {
             return;
         }
 
+        showLoading(isLogin ? "Sincronizando Archivo..." : "Inicializando Protocolo...");
         setLoading(true);
         setError(null);
         try {
@@ -54,10 +58,12 @@ export default function Login() {
             }
         } finally {
             setLoading(false);
+            hideLoading();
         }
     };
 
     const handleGoogleSignIn = async () => {
+        showLoading("Sincronizando vía Google...");
         setLoading(true);
         setError(null);
         try {
@@ -73,6 +79,7 @@ export default function Login() {
             setError("Google Sign-In failed.");
         } finally {
             setLoading(false);
+            hideLoading();
         }
     };
 
@@ -159,14 +166,8 @@ export default function Login() {
                                 className="w-full h-16 bg-primary text-black hover:bg-white font-black text-sm uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-primary/10 group"
                                 disabled={loading}
                             >
-                                {loading ? (
-                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                ) : (
-                                    <>
-                                        {isLogin ? "Synchronize" : "Initialize"}
-                                        <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                                    </>
-                                )}
+                                {isLogin ? "Synchronize" : "Initialize"}
+                                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                             </Button>
                         </form>
 

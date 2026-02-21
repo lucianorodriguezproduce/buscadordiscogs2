@@ -8,6 +8,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { discogsService, type DiscogsSearchResult } from "@/lib/discogs";
 import { authenticateUser, signInWithGoogle } from "@/lib/auth";
 import { useAuth } from "@/context/AuthContext";
+import { useLoading } from "@/context/LoadingContext";
 import { generateWhatsAppLink } from "@/utils/whatsapp";
 import type { OrderData } from "@/utils/whatsapp";
 import { pushViewItem, pushViewItemFromOrder, pushWhatsAppContactFromOrder } from "@/utils/analytics";
@@ -29,7 +30,7 @@ export default function Home() {
     const [query, setQuery] = useState("");
     const [format, setFormat] = useState<Format | null>(null);
     const [condition, setCondition] = useState<Condition | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { showLoading, hideLoading, isLoading: isSubmitting } = useLoading();
     const [isSuccess, setIsSuccess] = useState(false);
     const [step, setStep] = useState(1);
     const [submittedOrder, setSubmittedOrder] = useState<any>(null);
@@ -106,7 +107,7 @@ export default function Home() {
     useEffect(() => {
         const loadItemFromRoute = async () => {
             if (routeId && routeType && !selectedItem) {
-                setIsLoadingSearch(true);
+                showLoading("Buscando en Discogs...");
                 try {
                     let data;
                     if (routeType === 'release') {
@@ -163,7 +164,7 @@ export default function Home() {
                     console.error("Failed to load item from route:", error);
                     navigate('/');
                 } finally {
-                    setIsLoadingSearch(false);
+                    hideLoading();
                 }
             }
         };
@@ -185,7 +186,7 @@ export default function Home() {
     useEffect(() => {
         const performSearch = async () => {
             if (debouncedQuery.trim().length >= 3 && !selectedItem) {
-                setIsLoadingSearch(true);
+                showLoading("Buscando en Discogs...");
                 try {
                     let typeParam = "release,master,artist";
                     if (searchFilter === "artistas") typeParam = "artist";
@@ -198,7 +199,7 @@ export default function Home() {
                 } catch (error) {
                     console.error("Search error:", error);
                 } finally {
-                    setIsLoadingSearch(false);
+                    hideLoading();
                 }
             } else if (!selectedItem) {
                 setSearchResults([]);
@@ -210,7 +211,7 @@ export default function Home() {
 
     const handleLoadMore = async () => {
         if (isLoadingSearch || !hasMore) return;
-        setIsLoadingSearch(true);
+        showLoading("Cargando más resultados...");
         try {
             const nextPage = currentPage + 1;
             let typeParam = "release,master,artist";
@@ -224,7 +225,7 @@ export default function Home() {
         } catch (error) {
             console.error("Load more error:", error);
         } finally {
-            setIsLoadingSearch(false);
+            hideLoading();
         }
     };
 
@@ -235,7 +236,7 @@ export default function Home() {
             return;
         }
 
-        setIsLoadingSearch(true);
+        showLoading("Explorando catálogo...");
         // Force the filter visual state to 'álbumes' as we dive into entities' discographies
         setSearchFilter("álbumes");
         // Re-brand the input query text to denote the user is now browsing this entity
@@ -259,7 +260,7 @@ export default function Home() {
         } catch (error) {
             console.error("Entity drill-down error:", error);
         } finally {
-            setIsLoadingSearch(false);
+            hideLoading();
         }
     };
 
@@ -489,7 +490,7 @@ export default function Home() {
     };
 
     const handleGoogleSignIn = async () => {
-        setIsSubmitting(true);
+        showLoading("Sincronizando con Google...");
         try {
             const googleUser = await signInWithGoogle();
             if (googleUser) {
@@ -501,7 +502,7 @@ export default function Home() {
             console.error("Google Auth error:", error);
             alert("Error al vincular con Google.");
         } finally {
-            setIsSubmitting(false);
+            hideLoading();
         }
     };
 
@@ -509,7 +510,7 @@ export default function Home() {
         if (e) e.preventDefault();
         if (!email || !password) return;
 
-        setIsSubmitting(true);
+        showLoading("Autenticando usuario...");
         try {
             const loggedUser = await authenticateUser(email, password);
             if (loggedUser) {
@@ -521,7 +522,7 @@ export default function Home() {
             console.error("Manual Auth error:", error);
             alert("Error en autenticación. Verifique sus credenciales.");
         } finally {
-            setIsSubmitting(false);
+            hideLoading();
         }
     };
 
